@@ -134,7 +134,7 @@ const languages = {
     'ar'    : 'اَلْعَرَبِيَّةُ',
 };
 
-const languages_cache_key = 9;
+const languages_cache_key = 10;
 const DEFAULT_CHEAPNESS_MODE = "levels";
 
 document.documentElement.dataset.theme = 'dark';
@@ -146,7 +146,6 @@ window.onload = function() {
 
     buildItemSelection();
     buildEnchantmentSelection();
-    buildFilters();
     setupLanguage();
 };
 
@@ -165,11 +164,6 @@ function resetWorker() {
         msg: "set_data",
         data: data
     });
-}
-
-function buildFilters() {
-    $("#allow_incompatible").change(allowIncompatibleChanged);
-    $("#allow_many").change(allowManyChanged);
 }
 
 function buildItemSelection() {
@@ -198,14 +192,6 @@ function updateItemSelectorPreview() {
     item_preview_icon
         .attr("src", iconPathForItem(item_namespace, has_enchantments))
         .attr("alt", item_name);
-}
-
-function updateEnchantmentRowStates() {
-    $("#enchants table tr").each(function() {
-        const enchantment_row = $(this);
-        const has_selection = enchantment_row.find("button.level-button.on").length > 0;
-        enchantment_row.toggleClass("has-selection", has_selection);
-    });
 }
 
 function incompatibleGroupFromNamespace(enchantment_namespace) {
@@ -344,45 +330,13 @@ function buildEnchantList(item_namespace_chosen) {
     runAutoCalculation();
 }
 
-function doAllowIncompatibleEnchantments() {
-    const allow_incompatible_checkbox = $("#allow_incompatible");
-    return allow_incompatible_checkbox.is(":checked");
-}
-
-function doAllowManyEnchantments() {
-    const allow_many_checkbox = $("#allow_many");
-    return allow_many_checkbox.is(":checked");
-}
-
-function allowIncompatibleChanged() {
-    const allow_incompatible = doAllowIncompatibleEnchantments();
-    if (!allow_incompatible) {
-        turnOffLevelButtons();
-    }
-}
-
-function allowManyChanged() {
-    const allow_many = doAllowManyEnchantments();
-    if (!allow_many) {
-        turnOffLevelButtons();
-    }
-}
-
-function turnOffLevelButtons() {
-    const enchantment_buttons = $(".level-button");
-    turnOffButtons(enchantment_buttons);
-    runAutoCalculation();
-}
-
 function buildEnchantmentSelection() {
     $("select#item").change(function() {
         const item_namespace_selected = $("select#item option:selected").val();
         if (item_namespace_selected) {
             buildEnchantList(item_namespace_selected);
-            $("#overrides").show();
         } else {
             $("#enchants").hide();
-            $("#overrides").hide();
             $("#final-preview").hide();
             $("#phone-warn").hide();
             $("#solution").hide();
@@ -866,18 +820,13 @@ function updateLevelButtonForOnState(level_button) {
     });
     turnOffButtons(matching_buttons);
 
-    const allow_incompatible = doAllowIncompatibleEnchantments();
-    if (!allow_incompatible) {
-        const enchantment_metadata = enchantments_metadata[enchantment_namespace];
-        const incompatible_namespaces = enchantment_metadata.incompatible;
-        filterEnchantmentButtons(incompatible_namespaces);
-    }
+    const enchantment_metadata = enchantments_metadata[enchantment_namespace];
+    const incompatible_namespaces = enchantment_metadata.incompatible;
+    filterEnchantmentButtons(incompatible_namespaces);
 }
 
 function isTooManyEnchantments(enchantment_count) {
-    const allow_many = doAllowManyEnchantments();
-    const many_selected = enchantment_count > ENCHANTMENT_LIMIT_INCLUSIVE;
-    return !allow_many && many_selected;
+    return enchantment_count > ENCHANTMENT_LIMIT_INCLUSIVE;
 }
 
 function levelButtonClicked(button_clicked) {
@@ -967,7 +916,6 @@ function updateFinalPreview() {
 
 function runAutoCalculation() {
     if (!languageJson) return;
-    updateEnchantmentRowStates();
     updateItemSelectorPreview();
     updateFinalPreview();
 
@@ -1154,9 +1102,6 @@ function changeLanguageByJson(languageJson){
     });
 
     /* other UI */
-    document.getElementById("override-incompatible").textContent = languageJson.checkbox_label_incompatible;
-    document.getElementById("override-max-number").textContent = languageJson.checkbox_label_max_number;
-
     document.getElementById("total-cost-label").textContent = languageJson.total_cost;
 
     $("select#item").change();
