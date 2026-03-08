@@ -148,8 +148,6 @@ body {
     font-family: var(--font-ui);
     color: var(--text);
     background-color: var(--bg);
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240' viewBox='0 0 240 240'%3E%3Cg fill='none' stroke='%23ffffff' stroke-opacity='0.05' stroke-width='2.8' stroke-linecap='round'%3E%3Cpath d='M20 80c20-30 57-32 88-8 16 12 35 16 58 11'/%3E%3Cpath d='M48 104c3 10 6 20 9 30'/%3E%3Cpath d='M140 71c4 8 9 15 15 23'/%3E%3Cpath d='M160 122c6-1 12-3 17-7'/%3E%3Cpath d='M10 190c20-30 57-32 88-8 16 12 35 16 58 11'/%3E%3Cpath d='M38 214c3 10 6 20 9 30'/%3E%3Cpath d='M130 181c4 8 9 15 15 23'/%3E%3Cpath d='M150 232c6-1 12-3 17-7'/%3E%3C/g%3E%3C/svg%3E");
-    background-size: 260px 260px;
 }
 
 a {
@@ -364,11 +362,8 @@ input:focus-visible {
     image-rendering: pixelated;
 }
 
-.final-preview-name {
-    font-family: var(--font-pixel);
-    font-size: 0.8rem;
-    text-align: center;
-    line-height: 1.2;
+.final-preview-icon-enchanted {
+    filter: saturate(1.16) contrast(1.08) drop-shadow(0 0 6px rgba(124, 157, 255, 0.65));
 }
 
 .final-preview-enchants {
@@ -476,14 +471,20 @@ input:focus-visible {
     align-items: center;
     gap: 0.55rem;
     font-family: var(--font-pixel);
+    line-height: 1;
 }
 
 .xp-orb {
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background: var(--ok);
-    box-shadow: 0 0 0 3px rgba(7, 89, 31, 0.45);
+    width: 20px;
+    height: 20px;
+    display: block;
+    align-self: center;
+    background-image: url("./images/xp_orb.gif");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+    filter: drop-shadow(0 0 4px rgba(111, 255, 148, 0.6));
+    transform: translateY(1px);
 }
 
 #total-cost-label {
@@ -565,6 +566,10 @@ input:focus-visible {
     height: 64px;
     object-fit: contain;
     image-rendering: pixelated;
+}
+
+.step-item-icon-enchanted {
+    filter: saturate(1.16) contrast(1.08) drop-shadow(0 0 6px rgba(124, 157, 255, 0.65));
 }
 
 .step-item-lines {

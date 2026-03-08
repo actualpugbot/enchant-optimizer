@@ -8,7 +8,7 @@ let languageJson;
 let languageId;
 let enchants_list;
 
-const TOOL_WEAPON_NETHERITE_ICONS = {
+const ITEM_ICON_VARIANTS = {
     sword: {
         base: "./images/sword_netherite.png",
         enchanted: "./images/sword_netherite_enchanted.gif",
@@ -28,6 +28,83 @@ const TOOL_WEAPON_NETHERITE_ICONS = {
     hoe: {
         base: "./images/hoe_netherite.png",
         enchanted: "./images/hoe_netherite_enchanted.gif",
+    },
+    helmet: {
+        base: "./images/helmet.gif",
+        enchanted: "./images/helmet_enchanted.gif",
+    },
+    chestplate: {
+        base: "./images/chestplate.gif",
+        enchanted: "./images/chestplate_enchanted.gif",
+    },
+    leggings: {
+        base: "./images/leggings.gif",
+        enchanted: "./images/leggings_enchanted.gif",
+    },
+    boots: {
+        base: "./images/boots.gif",
+        enchanted: "./images/boots_enchanted.gif",
+    },
+    turtle_shell: {
+        base: "./images/turtle_shell.gif",
+        enchanted: "./images/turtle_shell_enchanted.gif",
+    },
+    elytra: {
+        base: "./images/elytra.gif",
+        enchanted: "./images/elytra_enchanted.gif",
+    },
+    mace: {
+        base: "./images/mace.gif",
+        enchanted: "./images/mace_enchanted.gif",
+    },
+    spear: {
+        base: "./images/spear.gif",
+        enchanted: "./images/spear_enchanted.gif",
+    },
+    trident: {
+        base: "./images/trident.gif",
+        enchanted: "./images/trident_enchanted.gif",
+    },
+    bow: {
+        base: "./images/bow.gif",
+        enchanted: "./images/bow_enchanted.gif",
+    },
+    crossbow: {
+        base: "./images/crossbow.gif",
+        enchanted: "./images/crossbow_enchanted.gif",
+    },
+    shield: {
+        base: "./images/shield.gif",
+        enchanted: "./images/shield_enchanted.gif",
+    },
+    fishing_rod: {
+        base: "./images/fishing_rod.gif",
+        enchanted: "./images/fishing_rod_enchanted.gif",
+    },
+    shears: {
+        base: "./images/shears.gif",
+        enchanted: "./images/shears_enchanted.gif",
+    },
+    flint_and_steel: {
+        base: "./images/flint_and_steel.gif",
+        enchanted: "./images/flint_and_steel_enchanted.png",
+    },
+    carrot_on_a_stick: {
+        base: "./images/carrot_on_a_stick.gif",
+        enchanted: "./images/carrot_on_a_stick_enchanted.gif",
+    },
+    warped_fungus_on_a_stick: {
+        base: "./images/warped_fungus_on_a_stick.gif",
+    },
+    pumpkin: {
+        base: "./images/pumpkin.gif",
+    },
+    brush: {
+        base: "./images/brush.gif",
+    },
+    book: {
+        base: "./images/book.gif",
+        enchanted: "./images/book_enchanted.gif",
     },
 };
 
@@ -444,9 +521,14 @@ function extractItemDisplayData(item_obj) {
 }
 
 function iconPathForItem(item_namespace, is_enchanted = false) {
-    const netherite_icon = TOOL_WEAPON_NETHERITE_ICONS[item_namespace];
-    if (netherite_icon) {
-        return is_enchanted ? netherite_icon.enchanted : netherite_icon.base;
+    const icon_variant = ITEM_ICON_VARIANTS[item_namespace];
+    if (icon_variant) {
+        if (is_enchanted && icon_variant.enchanted) {
+            return icon_variant.enchanted;
+        }
+        if (icon_variant.base) {
+            return icon_variant.base;
+        }
     }
 
     return "./images/" + item_namespace + ".gif";
@@ -829,8 +911,8 @@ function updateFinalPreview() {
 
     $("#final-preview-icon")
         .attr("src", iconPathForItem(item_namespace, has_enchantments))
-        .attr("alt", item_name);
-    $("#final-preview-name").text(item_name);
+        .attr("alt", item_name)
+        .toggleClass("final-preview-icon-enchanted", has_enchantments);
 
     const enchantment_list = $("#final-preview-enchants");
     enchantment_list.html("");
