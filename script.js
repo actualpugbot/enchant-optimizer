@@ -187,15 +187,13 @@ function updateItemSelectorPreview() {
         return;
     }
 
-    const selected_enchantments = retrieveEnchantmentFoundation();
-    const has_enchantments = selected_enchantments.length > 0;
     const item_name = displayItemName(item_namespace, true);
 
     item_preview_icon
-        .attr("src", iconPathForItem(item_namespace, has_enchantments))
+        .attr("src", iconPathForItem(item_namespace, false))
         .attr("alt", item_name)
-        .toggleClass("item-select-icon-enchanted", has_enchantments)
-        .toggleClass("item-select-icon-unenchanted", !has_enchantments);
+        .toggleClass("item-select-icon-enchanted", false)
+        .toggleClass("item-select-icon-unenchanted", true);
 }
 
 function incompatibleGroupFromNamespace(enchantment_namespace) {
