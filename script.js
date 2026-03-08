@@ -30,20 +30,20 @@ const ITEM_ICON_VARIANTS = {
         enchanted: "./images/hoe_netherite_enchanted.gif",
     },
     helmet: {
-        base: "./images/helmet.gif",
-        enchanted: "./images/helmet_enchanted.gif",
+        base: "./images/helmet_netherite.png",
+        enchanted: "./images/helmet_netherite_enchanted.gif",
     },
     chestplate: {
-        base: "./images/chestplate.gif",
-        enchanted: "./images/chestplate_enchanted.gif",
+        base: "./images/chestplate_netherite.png",
+        enchanted: "./images/chestplate_netherite_enchanted.gif",
     },
     leggings: {
-        base: "./images/leggings.gif",
-        enchanted: "./images/leggings_enchanted.gif",
+        base: "./images/leggings_netherite.png",
+        enchanted: "./images/leggings_netherite_enchanted.gif",
     },
     boots: {
-        base: "./images/boots.gif",
-        enchanted: "./images/boots_enchanted.gif",
+        base: "./images/boots_netherite.png",
+        enchanted: "./images/boots_netherite_enchanted.gif",
     },
     turtle_shell: {
         base: "./images/turtle_shell.gif",
@@ -58,8 +58,8 @@ const ITEM_ICON_VARIANTS = {
         enchanted: "./images/mace_enchanted.gif",
     },
     spear: {
-        base: "./images/spear.gif",
-        enchanted: "./images/spear_enchanted.gif",
+        base: "./images/spear_netherite.png",
+        enchanted: "./images/spear_netherite_enchanted.gif",
     },
     trident: {
         base: "./images/trident.gif",
@@ -137,14 +137,8 @@ const languages = {
 const languages_cache_key = 6;
 const DEFAULT_CHEAPNESS_MODE = "levels";
 
-const prefers_color_scheme = window.matchMedia("(prefers-color-scheme: dark)");
-if (prefers_color_scheme.matches) {
-    document.documentElement.dataset.theme = 'dark';
-    localStorage.setItem("tswitch-theme", 'dark');
-} else {
-    document.documentElement.dataset.theme = 'light';
-    localStorage.setItem("tswitch-theme", 'light');
-}
+document.documentElement.dataset.theme = 'dark';
+localStorage.setItem("tswitch-theme", 'dark');
 
 window.onload = function() {
 
@@ -438,6 +432,22 @@ function displayLevelXpText(levels, xp, minimum_xp = -1) {
     return level_text + " (" + xp_text + ")";
 }
 
+function toTitleCase(text) {
+    return text
+        .replace(/[_-]+/g, " ")
+        .split(/\s+/)
+        .filter(word => word.length > 0)
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(" ");
+}
+
+function displayItemName(item_namespace, force_title_case = false) {
+    const items_metadata = languageJson && languageJson.items ? languageJson.items : {};
+    const localized_item_name = items_metadata[item_namespace];
+    const item_name = localized_item_name || item_namespace;
+    return force_title_case ? toTitleCase(item_name) : item_name;
+}
+
 function toRomanNumeral(value) {
     const roman_map = [
         [1000, "M"],
@@ -536,7 +546,7 @@ function iconPathForItem(item_namespace, is_enchanted = false) {
 
 function buildStepItemElement(item_obj) {
     const item_data = extractItemDisplayData(item_obj);
-    const item_name = languageJson.items[item_data.item_namespace] || item_data.item_namespace;
+    const item_name = displayItemName(item_data.item_namespace, true);
     const has_enchantments = item_data.enchantments.length > 0;
     const icon_src = iconPathForItem(item_data.item_namespace, has_enchantments);
 
@@ -594,8 +604,7 @@ function displayItemText(item_obj) {
     const item_namespace = item_data.item_namespace;
     const icon_src = iconPathForItem(item_namespace, item_data.enchantments.length > 0);
     const icon_text = '<img src="' + icon_src + '" class="icon" alt="">';
-    const items_metadata = languageJson.items;
-    const item_name = items_metadata[item_namespace];
+    const item_name = displayItemName(item_namespace, true);
     const enchantments_text = displayEnchantmentsText(item_data.enchantments);
 
     if (!enchantments_text) {
@@ -692,7 +701,7 @@ function addInstructionDisplay(instruction, step_number) {
 
 function updateSolutionIdentity(item_namespace, selected_enchantments) {
     const solution_header = $("#solution-header");
-    const item_name = languageJson.items[item_namespace] || item_namespace;
+    const item_name = displayItemName(item_namespace, true);
     solution_header.text(item_name);
 
     const pickaxe_priority = ["silk_touch", "fortune"];
@@ -903,7 +912,7 @@ function updateFinalPreview() {
 
     const enchantment_foundation = retrieveEnchantmentFoundation();
     const has_enchantments = enchantment_foundation.length > 0;
-    const item_name = languageJson.items[item_namespace] || item_namespace;
+    const item_name = displayItemName(item_namespace, true);
 
     $("#final-preview-icon")
         .attr("src", iconPathForItem(item_namespace, has_enchantments))
@@ -966,8 +975,8 @@ function solutionHeaderTextFromMode(mode) {
 
 function updateSolutionHeader(mode) {
     const selected_item_namespace = retrieveSelectedItem();
-    if (selected_item_namespace && languageJson.items[selected_item_namespace]) {
-        $("#solution-header").text(languageJson.items[selected_item_namespace]);
+    if (selected_item_namespace) {
+        $("#solution-header").text(displayItemName(selected_item_namespace, true));
         $("#solution-subheader").text("");
         return;
     }
