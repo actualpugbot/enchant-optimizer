@@ -336,6 +336,64 @@ input:focus-visible {
     accent-color: var(--accent);
 }
 
+#final-preview {
+    margin-top: 0.85rem;
+}
+
+.final-preview-heading {
+    margin: 0 0 0.55rem;
+    font-size: 0.88rem;
+    color: var(--muted);
+    font-weight: 600;
+}
+
+.final-preview-card {
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    background: var(--panel-soft);
+    padding: 0.7rem 0.65rem;
+    display: grid;
+    justify-items: center;
+    gap: 0.45rem;
+}
+
+.final-preview-icon {
+    width: 66px;
+    height: 66px;
+    object-fit: contain;
+    image-rendering: pixelated;
+}
+
+.final-preview-name {
+    font-family: var(--font-pixel);
+    font-size: 0.8rem;
+    text-align: center;
+    line-height: 1.2;
+}
+
+.final-preview-enchants {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 0.2rem;
+    width: 100%;
+    text-align: center;
+}
+
+.final-preview-enchants li {
+    font-family: var(--font-pixel);
+    font-size: 0.72rem;
+    line-height: 1.26;
+    color: #f7f9ff;
+}
+
+.final-preview-enchants li.final-preview-empty {
+    font-family: var(--font-ui);
+    font-size: 0.76rem;
+    color: var(--muted);
+}
+
 #mode_selection {
     margin: 0 0 0.75rem;
     display: flex;
@@ -524,13 +582,6 @@ input:focus-visible {
 
 .step-meta {
     display: none;
-}
-
-#xp-range-note {
-    margin: 0.8rem 0 0;
-    color: var(--muted);
-    font-size: 0.72rem;
-    text-align: center;
 }
 
 .icon {
