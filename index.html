@@ -8,8 +8,8 @@
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
         <script src="https://code.jquery.com/jquery-3.6.0.slim.min.js" integrity="sha256-u7e5khyithlIdTpu22PHhENmPcRdFiHRjhAuHcs05RI=" crossorigin="anonymous"></script>
         <script src="data.js?11"></script>
-        <script src="script.js?28"></script>
-        <link rel="stylesheet" type="text/css" href="style.css?17">
+        <script src="script.js?32"></script>
+        <link rel="stylesheet" type="text/css" href="style.css?26">
         <link rel="apple-touch-icon" sizes="180x180" href="./icons/apple-touch-icon.png">
         <link rel="icon" type="image/png" sizes="32x32" href="./icons/favicon-32x32.png">
         <link rel="icon" type="image/png" sizes="16x16" href="./icons/favicon-16x16.png">
@@ -23,9 +23,8 @@
                 </div>
 
                 <div class="top-container">
-                    <label for="language" class="control-label">Language</label>
                     <select id="language" class="selectLanguage">
-                        <option value="">Choose a language</option>
+                        <option value="en">English</option>
                     </select>
                 </div>
             </header>
@@ -36,7 +35,7 @@
                         <label for="item" class="section-heading">Select Item</label>
                         <div class="item-select-shell">
                             <div class="item-select-preview" aria-hidden="true">
-                                <img id="item-select-icon" class="item-select-icon" src="./images/book.gif" alt="">
+                                <img id="item-select-icon" class="item-select-icon item-select-icon-unenchanted" src="./images/book.gif" alt="">
                             </div>
                             <div class="item-select-field">
                                 <select id="item" class="selectItem">
@@ -47,15 +46,14 @@
                     </div>
 
                     <div id="enchants" style="display: none">
-                        <h2 class="section-heading">Select enchantments</h2>
+                        <h2 class="section-heading">Select Enchantments</h2>
                         <div class="table-wrap">
                             <table></table>
                         </div>
 
                         <div id="final-preview" style="display: none">
-                            <h3 class="final-preview-heading">Final enchanted item</h3>
                             <div class="final-preview-card">
-                                <img id="final-preview-icon" class="final-preview-icon" src="./images/book.gif" alt="">
+                                <img id="final-preview-icon" class="final-preview-icon final-preview-icon-unenchanted" src="./images/book.gif" alt="">
                                 <ul id="final-preview-enchants" class="final-preview-enchants"></ul>
                             </div>
                         </div>
@@ -89,7 +87,7 @@
                 </section>
             </section>
 
-            <footer class="footer panel">
+            <footer class="footer">
                 <p>Inspired by <a href="https://github.com/iamcal/enchant-order">iamcal/enchant-order</a></p>
             </footer>
         </main>

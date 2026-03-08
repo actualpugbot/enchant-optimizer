@@ -30,19 +30,19 @@ const ITEM_ICON_VARIANTS = {
         enchanted: "./images/hoe_netherite_enchanted.gif",
     },
     helmet: {
-        base: "./images/helmet_netherite.png",
+        base: "./images/helmet_netherite_unenchanted_3d.png",
         enchanted: "./images/helmet_netherite_enchanted.gif",
     },
     chestplate: {
-        base: "./images/chestplate_netherite.png",
+        base: "./images/chestplate_netherite_unenchanted_3d.png",
         enchanted: "./images/chestplate_netherite_enchanted.gif",
     },
     leggings: {
-        base: "./images/leggings_netherite.png",
+        base: "./images/leggings_netherite_unenchanted_3d.png",
         enchanted: "./images/leggings_netherite_enchanted.gif",
     },
     boots: {
-        base: "./images/boots_netherite.png",
+        base: "./images/boots_netherite_unenchanted_3d.png",
         enchanted: "./images/boots_netherite_enchanted.gif",
     },
     turtle_shell: {
@@ -181,7 +181,9 @@ function updateItemSelectorPreview() {
     if (!item_namespace) {
         item_preview_icon
             .attr("src", iconPathForItem("book", false))
-            .attr("alt", "");
+            .attr("alt", "")
+            .toggleClass("item-select-icon-enchanted", false)
+            .toggleClass("item-select-icon-unenchanted", true);
         return;
     }
 
@@ -191,7 +193,9 @@ function updateItemSelectorPreview() {
 
     item_preview_icon
         .attr("src", iconPathForItem(item_namespace, has_enchantments))
-        .attr("alt", item_name);
+        .attr("alt", item_name)
+        .toggleClass("item-select-icon-enchanted", has_enchantments)
+        .toggleClass("item-select-icon-unenchanted", !has_enchantments);
 }
 
 function incompatibleGroupFromNamespace(enchantment_namespace) {
@@ -519,6 +523,7 @@ function extractItemDisplayData(item_obj) {
 function iconPathForItem(item_namespace, is_enchanted = false) {
     const icon_variant = ITEM_ICON_VARIANTS[item_namespace];
     if (icon_variant) {
+        // Prefer dedicated enchanted icon assets when enchantments are present.
         if (is_enchanted && icon_variant.enchanted) {
             return icon_variant.enchanted;
         }
@@ -544,6 +549,8 @@ function buildStepItemElement(item_obj) {
     });
     if (has_enchantments) {
         item_icon.addClass("step-item-icon-enchanted");
+    } else {
+        item_icon.addClass("step-item-icon-unenchanted");
     }
     item_icon.appendTo(item_element);
 
@@ -588,8 +595,10 @@ function displayEnchantmentsText(enchants) {
 function displayItemText(item_obj) {
     const item_data = extractItemDisplayData(item_obj);
     const item_namespace = item_data.item_namespace;
-    const icon_src = iconPathForItem(item_namespace, item_data.enchantments.length > 0);
-    const icon_text = '<img src="' + icon_src + '" class="icon" alt="">';
+    const has_enchantments = item_data.enchantments.length > 0;
+    const icon_src = iconPathForItem(item_namespace, has_enchantments);
+    const icon_class = has_enchantments ? "icon icon-enchanted" : "icon icon-unenchanted";
+    const icon_text = '<img src="' + icon_src + '" class="' + icon_class + '" alt="">';
     const item_name = displayItemName(item_namespace, true);
     const enchantments_text = displayEnchantmentsText(item_data.enchantments);
 
@@ -894,7 +903,8 @@ function updateFinalPreview() {
     $("#final-preview-icon")
         .attr("src", iconPathForItem(item_namespace, has_enchantments))
         .attr("alt", item_name)
-        .toggleClass("final-preview-icon-enchanted", has_enchantments);
+        .toggleClass("final-preview-icon-enchanted", has_enchantments)
+        .toggleClass("final-preview-icon-unenchanted", !has_enchantments);
 
     const enchantment_list = $("#final-preview-enchants");
     enchantment_list.html("");
@@ -1000,25 +1010,21 @@ function languageChangeListener(){
 }
 
 async function setupLanguage(){
+    const language_select = $("#language");
+    language_select.empty();
     for (const i in languages){
-        $("<option/>", {'value': i}).text(languages[i]).appendTo('#language');
+        $("<option/>", { 'value': i, 'selected': i === 'en' }).text(languages[i]).appendTo(language_select);
     }
     defineBrowserLanguage();
     languageChangeListener();
 }
 
 function defineBrowserLanguage(){
-    if (!localStorage.getItem("savedlanguage")) {
-        // language isn't saved and has to be detected
-        const browserLanguage = navigator.language || navigator.userLanguage;
-        if (languages[browserLanguage]){
-            changePageLanguage(browserLanguage);
-        } else {
-            changePageLanguage('en');
-        }
+    const saved_language = localStorage.getItem("savedlanguage");
+    if (saved_language && languages[saved_language]) {
+        changePageLanguage(saved_language);
     } else {
-        // language is saved, load from save
-        changePageLanguage(localStorage.getItem("savedlanguage"));
+        changePageLanguage('en');
     }
 }
 
@@ -1038,6 +1044,7 @@ async function changePageLanguage(language){
     }
     if (languageJson){
         changeLanguageByJson(languageJson);
+        document.getElementById("language").value = language;
         localStorage.setItem("savedlanguage", language);
         // ^ Save language choice to localstorage
     }
