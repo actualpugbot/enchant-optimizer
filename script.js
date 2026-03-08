@@ -135,6 +135,7 @@ const languages = {
 };
 
 const languages_cache_key = 6;
+const DEFAULT_CHEAPNESS_MODE = "levels";
 
 const prefers_color_scheme = window.matchMedia("(prefers-color-scheme: dark)");
 if (prefers_color_scheme.matches) {
@@ -175,7 +176,6 @@ function resetWorker() {
 function buildFilters() {
     $("#allow_incompatible").change(allowIncompatibleChanged);
     $("#allow_many").change(allowManyChanged);
-    $('input[name="cheapness-mode"]').change(runAutoCalculation);
 }
 
 function buildItemSelection() {
@@ -886,10 +886,6 @@ function retrieveEnchantmentFoundation() {
     return enchantment_foundation;
 }
 
-function retrieveCheapnessMode() {
-    return $('input[name="cheapness-mode"]:checked').val();
-}
-
 function retrieveSelectedItem() {
     return $("select#item option:selected").val();
 }
@@ -945,18 +941,17 @@ function runAutoCalculation() {
     $("#phone-warn").hide();
     $("#solution").hide();
     $("#error").hide();
-    updateSolutionHeader(retrieveCheapnessMode());
+    updateSolutionHeader(DEFAULT_CHEAPNESS_MODE);
 }
 
 function calculate() {
     const enchantment_foundation = retrieveEnchantmentFoundation();
     if (enchantment_foundation.length === 0) return;
 
-    const cheapness_mode = retrieveCheapnessMode();
     const item_namespace = retrieveSelectedItem();
     if (!item_namespace) return;
 
-    startCalculating(item_namespace, enchantment_foundation, cheapness_mode);
+    startCalculating(item_namespace, enchantment_foundation, DEFAULT_CHEAPNESS_MODE);
 }
 
 function solutionHeaderTextFromMode(mode) {
@@ -1122,10 +1117,6 @@ function changeLanguageByJson(languageJson){
     /* other UI */
     document.getElementById("override-incompatible").textContent = languageJson.checkbox_label_incompatible;
     document.getElementById("override-max-number").textContent = languageJson.checkbox_label_max_number;
-
-    document.getElementById("optimize-label").textContent = languageJson.optimize_for;
-    document.getElementById("optimize-xp").textContent = languageJson.radio_label_optimize_xp;
-    document.getElementById("optimize-pwp").textContent = languageJson.radio_label_optimize_pwp;
 
     document.getElementById("total-cost-label").textContent = languageJson.total_cost;
 
