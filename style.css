@@ -87,15 +87,21 @@ a:hover {
     appearance: none;
     border: 1px solid var(--line);
     border-radius: var(--radius-sm);
-    padding: 0.64rem 2rem 0.64rem 0.75rem;
+    padding: 0.72rem 2rem 0.72rem 0.75rem;
     font-family: var(--font-ui);
-    font-size: 0.95rem;
+    font-size: 0.96rem;
     color: var(--text);
     background-color: var(--panel-soft);
     background-image: url("images/down.png");
     background-position: right 0.65rem center;
     background-repeat: no-repeat;
     background-size: 12px 12px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.selectItem:hover,
+.selectLanguage:hover {
+    border-color: #4f5f72;
 }
 
 .selectItem:focus,
@@ -123,6 +129,46 @@ input:focus-visible {
     padding: 0.9rem;
 }
 
+.item-selector-card {
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    background: linear-gradient(170deg, #2a3441 0%, #1f2731 80%);
+    padding: 0.7rem;
+}
+
+.item-selector-card .section-heading {
+    display: block;
+    margin-bottom: 0.45rem;
+}
+
+.item-select-shell {
+    display: grid;
+    grid-template-columns: 70px minmax(0, 1fr);
+    gap: 0.65rem;
+    align-items: center;
+}
+
+.item-select-preview {
+    width: 70px;
+    height: 70px;
+    border-radius: var(--radius-sm);
+    border: 1px solid #425061;
+    background: radial-gradient(circle at 30% 25%, #3d4b5f, #26313d 74%);
+    display: grid;
+    place-items: center;
+}
+
+.item-select-icon {
+    width: 52px;
+    height: 52px;
+    object-fit: contain;
+    image-rendering: pixelated;
+}
+
+.item-select-field {
+    min-width: 0;
+}
+
 .section-heading {
     margin: 0 0 0.7rem;
     font-size: 0.95rem;
@@ -132,6 +178,10 @@ input:focus-visible {
 
 #enchants {
     margin-top: 0.85rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    padding: 0.75rem;
+    background: linear-gradient(180deg, #1f2833 0%, #1a222c 100%);
 }
 
 .table-wrap {
@@ -139,63 +189,88 @@ input:focus-visible {
     border-radius: var(--radius-sm);
     overflow-x: auto;
     max-height: 52vh;
+    background: #1f2934;
 }
 
 #enchants table {
     width: 100%;
     min-width: 0;
-    border-collapse: collapse;
+    border-collapse: separate;
+    border-spacing: 0;
     table-layout: fixed;
 }
 
 #enchants td {
-    padding: 0.3rem 0.45rem;
+    padding: 0.42rem 0.48rem;
     color: var(--text);
+    border-bottom: 1px solid #344355;
+}
+
+#enchants tr:last-child td {
+    border-bottom: 0;
 }
 
 #enchants td:first-child {
-    width: 8.4rem;
-    padding: 0.3rem 0.12rem 0.3rem 0.5rem;
-    font-size: 0.86rem;
+    width: 10.7rem;
+    padding: 0.42rem 0.18rem 0.42rem 0.48rem;
+}
+
+.enchant-name {
+    display: block;
+    color: #e7edf8;
+    font-size: 0.83rem;
+    line-height: 1.3;
     font-weight: 600;
-    white-space: normal;
 }
 
 #enchants td.level-buttons-cell {
-    padding: 0.3rem 0.45rem 0.3rem 0;
+    padding: 0.42rem 0.5rem 0.42rem 0;
 }
 
 .level-buttons {
     display: flex;
     align-items: center;
-    gap: 0.24rem;
+    gap: 0.36rem;
     flex-wrap: wrap;
 }
 
 #enchants tr.group1 td {
-    background-color: #252d37;
+    background-color: #25303d;
 }
 
 #enchants tr.group2 td {
-    background-color: #2b3440;
+    background-color: #2a3642;
 }
 
-#enchants button {
-    width: 1.55rem;
-    height: 1.55rem;
+#enchants button.level-button {
+    width: 1.82rem;
+    height: 1.82rem;
     border: 1px solid #546171;
-    border-radius: 0.42rem;
+    border-radius: 0.5rem;
     padding: 0;
     color: var(--text);
     background: #39485a;
     font-family: var(--font-pixel);
-    font-size: 0.78rem;
+    font-size: 0.82rem;
     line-height: 1;
+    cursor: pointer;
+    transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.12s ease;
 }
 
-#enchants button.on {
+#enchants button.level-button:hover {
+    border-color: #7d92aa;
+    background: #42556b;
+    transform: translateY(-1px);
+}
+
+#enchants button.level-button.on {
     border-color: #8eb3ff;
     background: #34599a;
+    box-shadow: 0 0 0 1px rgba(160, 189, 255, 0.26);
+}
+
+#enchants tr.has-selection td {
+    background-color: #2d3c4d;
 }
 
 #overrides {
@@ -489,6 +564,30 @@ input:focus-visible {
     #left,
     #right {
         padding: 0.7rem;
+    }
+
+    .item-select-shell {
+        grid-template-columns: 56px minmax(0, 1fr);
+        gap: 0.5rem;
+    }
+
+    .item-select-preview {
+        width: 56px;
+        height: 56px;
+    }
+
+    .item-select-icon {
+        width: 42px;
+        height: 42px;
+    }
+
+    #enchants td:first-child {
+        width: 8.6rem;
+    }
+
+    #enchants button.level-button {
+        width: 1.72rem;
+        height: 1.72rem;
     }
 
     #steps li.step-card {

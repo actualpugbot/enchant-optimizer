@@ -134,7 +134,7 @@ const languages = {
     'ar'    : 'اَلْعَرَبِيَّةُ',
 };
 
-const languages_cache_key = 6;
+const languages_cache_key = 9;
 const DEFAULT_CHEAPNESS_MODE = "levels";
 
 document.documentElement.dataset.theme = 'dark';
@@ -177,6 +177,34 @@ function buildItemSelection() {
         const item_listbox_metadata = { value: item_namespace };
         const item_listbox = $("<option/>", item_listbox_metadata);
         item_listbox.text(item_namespace).appendTo("select#item");
+    });
+}
+
+function updateItemSelectorPreview() {
+    const item_namespace = retrieveSelectedItem();
+    const item_preview_icon = $("#item-select-icon");
+
+    if (!item_namespace) {
+        item_preview_icon
+            .attr("src", iconPathForItem("book", false))
+            .attr("alt", "");
+        return;
+    }
+
+    const selected_enchantments = retrieveEnchantmentFoundation();
+    const has_enchantments = selected_enchantments.length > 0;
+    const item_name = displayItemName(item_namespace, true);
+
+    item_preview_icon
+        .attr("src", iconPathForItem(item_namespace, has_enchantments))
+        .attr("alt", item_name);
+}
+
+function updateEnchantmentRowStates() {
+    $("#enchants table tr").each(function() {
+        const enchantment_row = $(this);
+        const has_selection = enchantment_row.find("button.level-button.on").length > 0;
+        enchantment_row.toggleClass("has-selection", has_selection);
     });
 }
 
@@ -284,16 +312,18 @@ function buildEnchantList(item_namespace_chosen) {
 
             const enchantment_row = $("<tr>");
             enchantment_row.addClass(group_toggle_color ? "group1" : "group2");
-            enchantment_row.append($("<td>").append(enchantment_name));
+            enchantment_row.append($("<td>").append($("<span>").addClass("enchant-name").text(enchantment_name)));
+
             const enchantment_levels = $("<div>").addClass("level-buttons");
             const enchantment_levels_cell = $("<td>").addClass("level-buttons-cell");
             for (let enchantment_level = 1; enchantment_level <= enchantment_level_maxmax; enchantment_level++) {
                 if (enchantment_max_level >= enchantment_level) {
                     const enchantment_button_data = {
                         level: enchantment_level,
-                        enchant: enchantment_name
+                        enchant: enchantment_name,
+                        namespace: enchantment_namespace,
                     };
-                    const enchantment_button = $("<button>");
+                    const enchantment_button = $("<button>", { type: "button" });
                     enchantment_button.append(enchantment_level);
                     enchantment_button.addClass("off");
                     enchantment_button.addClass("level-button");
@@ -358,9 +388,11 @@ function buildEnchantmentSelection() {
             $("#solution").hide();
             $("#error").hide();
         }
+
+        updateItemSelectorPreview();
     });
 
-    $("#enchants table").on("click", "button", function() {
+    $("#enchants table").on("click", "button.level-button", function() {
         levelButtonClicked($(this));
     });
 }
@@ -780,9 +812,9 @@ function enchantmentNamespaceFromStylized(enchantment_name) {
     return namespace_match;
 }
 
-function buttonMatchesName(button, enchantment_name) {
-    const button_name = button.data("enchant");
-    return button_name === enchantment_name;
+function buttonMatchesNamespace(button, enchantment_namespace) {
+    const button_namespace = button.data("namespace");
+    return button_namespace === enchantment_namespace;
 }
 
 function buttonMatchesLevel(button, enchantment_level) {
@@ -790,8 +822,8 @@ function buttonMatchesLevel(button, enchantment_level) {
     return button_level === enchantment_level;
 }
 
-function filterButton(button, enchantment_name, enchantment_level = -1) {
-    const button_matches_name = buttonMatchesName(button, enchantment_name);
+function filterButton(button, enchantment_namespace, enchantment_level = -1) {
+    const button_matches_name = buttonMatchesNamespace(button, enchantment_namespace);
     const button_matches_level = buttonMatchesLevel(button, enchantment_level);
     return button_matches_name && !button_matches_level;
 }
@@ -807,15 +839,12 @@ function turnOnButtons(buttons) {
 }
 
 function filterEnchantmentButtons(incompatible_namespaces) {
-    const enchantments_metadata = data.enchants;
-    const enchantment_buttons = $("#enchants button");
+    const enchantment_buttons = $("#enchants button.level-button");
 
     incompatible_namespaces.forEach(incompatible_namespace => {
-        const incompatible_name = languageJson.enchants[incompatible_namespace];
-
         const matching_buttons = enchantment_buttons.filter(function () {
             const this_button = $(this);
-            return filterButton(this_button, incompatible_name);
+            return filterButton(this_button, incompatible_namespace);
         });
         turnOffButtons(matching_buttons);
     });
@@ -824,22 +853,21 @@ function filterEnchantmentButtons(incompatible_namespaces) {
 function updateLevelButtonForOnState(level_button) {
     const button_data = level_button.data();
     const enchantments_metadata = data.enchants;
-    const enchantment_buttons = $("#enchants button");
+    const enchantment_buttons = $("#enchants button.level-button");
 
     turnOnButtons(level_button);
 
-    const enchantment_name = button_data.enchant;
+    const enchantment_namespace = button_data.namespace || enchantmentNamespaceFromStylized(button_data.enchant);
     const enchantment_level = button_data.level;
 
     const matching_buttons = enchantment_buttons.filter(function () {
         const this_button = $(this);
-        return filterButton(this_button, enchantment_name, enchantment_level);
+        return filterButton(this_button, enchantment_namespace, enchantment_level);
     });
     turnOffButtons(matching_buttons);
 
     const allow_incompatible = doAllowIncompatibleEnchantments();
     if (!allow_incompatible) {
-        const enchantment_namespace = enchantmentNamespaceFromStylized(enchantment_name);
         const enchantment_metadata = enchantments_metadata[enchantment_namespace];
         const incompatible_namespaces = enchantment_metadata.incompatible;
         filterEnchantmentButtons(incompatible_namespaces);
@@ -883,12 +911,12 @@ function levelButtonClicked(button_clicked) {
 
 function retrieveEnchantmentFoundation() {
     const enchantment_foundation = [];
-    const buttons_on = $("#enchants button.on");
+    const buttons_on = $("#enchants button.level-button.on");
 
     buttons_on.each(function(button_index, button) {
         const enchantment_name = $(button).data("enchant");
         const enchantment_level = $(button).data("level");
-        const enchantment_namespace = enchantmentNamespaceFromStylized(enchantment_name);
+        const enchantment_namespace = $(button).data("namespace") || enchantmentNamespaceFromStylized(enchantment_name);
         enchantment_foundation.push([enchantment_namespace, enchantment_level]);
     });
 
@@ -939,6 +967,8 @@ function updateFinalPreview() {
 
 function runAutoCalculation() {
     if (!languageJson) return;
+    updateEnchantmentRowStates();
+    updateItemSelectorPreview();
     updateFinalPreview();
 
     const enchantment_foundation = retrieveEnchantmentFoundation();
