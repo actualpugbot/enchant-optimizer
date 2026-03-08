@@ -136,6 +136,8 @@ const languages = {
 
 const languages_cache_key = 10;
 const DEFAULT_CHEAPNESS_MODE = "levels";
+const APP_TITLE = "Enchant Optimizer";
+const APP_TAGLINE = "Get the optimal enchant order";
 
 document.documentElement.dataset.theme = 'dark';
 localStorage.setItem("tswitch-theme", 'dark');
@@ -228,6 +230,7 @@ function incompatibleGroupFromNamespace(enchantment_namespace) {
 
 function buildEnchantList(item_namespace_chosen) {
     const enchantments_metadata = data.enchants;
+    const protection_variant_namespaces = ["protection", "blast_protection", "fire_protection", "projectile_protection"];
 
     $("#enchants table").html("");
 
@@ -293,6 +296,19 @@ function buildEnchantList(item_namespace_chosen) {
     let group_toggle_color = true;
 
     enchantment_groups.forEach(enchantment_group => {
+        enchantment_group.sort((left_namespace, right_namespace) => {
+            const left_is_protection_variant = protection_variant_namespaces.includes(left_namespace);
+            const right_is_protection_variant = protection_variant_namespaces.includes(right_namespace);
+
+            if (!left_is_protection_variant || !right_is_protection_variant) {
+                return 0;
+            }
+
+            if (left_namespace === "protection") return -1;
+            if (right_namespace === "protection") return 1;
+            return 0;
+        });
+
         enchantment_group.forEach(enchantment_namespace => {
             const enchantment_metadata = enchantments_metadata[enchantment_namespace];
             const enchantment_max_level = enchantment_metadata.levelMax;
@@ -896,6 +912,11 @@ function updateFinalPreview() {
 
     const enchantment_foundation = retrieveEnchantmentFoundation();
     const has_enchantments = enchantment_foundation.length > 0;
+    if (!has_enchantments) {
+        preview.hide();
+        return;
+    }
+
     const item_name = displayItemName(item_namespace, true);
 
     $("#final-preview-icon")
@@ -907,17 +928,10 @@ function updateFinalPreview() {
     const enchantment_list = $("#final-preview-enchants");
     enchantment_list.html("");
 
-    if (!has_enchantments) {
-        $("<li>")
-            .addClass("final-preview-empty")
-            .text("Select enchantments to preview the final result.")
-            .appendTo(enchantment_list);
-    } else {
-        enchantment_foundation.forEach(([enchantment_namespace, enchantment_level]) => {
-            const enchantment_text = displayEnchantmentLine(enchantment_namespace, enchantment_level);
-            $("<li>").text(enchantment_text).appendTo(enchantment_list);
-        });
-    }
+    enchantment_foundation.forEach(([enchantment_namespace, enchantment_level]) => {
+        const enchantment_text = displayEnchantmentLine(enchantment_namespace, enchantment_level);
+        $("<li>").text(enchantment_text).appendTo(enchantment_list);
+    });
 
     preview.show();
 }
@@ -1093,7 +1107,13 @@ function changeLanguageByJson(languageJson){
     }
 
     const h1Element = document.getElementsByTagName('h1')[0];
-    h1Element.textContent = languageJson.h1_title;
+    h1Element.textContent = APP_TITLE;
+    document.title = APP_TITLE;
+
+    const subtitleElement = document.getElementById("app-tagline");
+    if (subtitleElement) {
+        subtitleElement.textContent = APP_TAGLINE;
+    }
 
 
     /* selection */

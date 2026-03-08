@@ -1,6 +1,6 @@
 <html lang="en">
     <head>
-        <title>Enchantment Ordering Tool</title>
+        <title>Enchant Optimizer</title>
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta charset="utf-8">
         <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -19,7 +19,8 @@
         <main class="app-shell">
             <header class="app-header">
                 <div class="app-heading">
-                    <h1>Enchantment Ordering Tool</h1>
+                    <h1>Enchant Optimizer</h1>
+                    <p id="app-tagline" class="subtitle">Get the optimal enchant order</p>
                 </div>
 
                 <div class="top-container">
@@ -30,7 +31,7 @@
             </header>
 
             <section class="workspace">
-                <section id="left" class="panel controls-panel">
+                <section id="left" class="controls-panel">
                     <div class="item-selector-card">
                         <label for="item" class="section-heading">Select Item</label>
                         <div class="item-select-shell">
@@ -39,7 +40,7 @@
                             </div>
                             <div class="item-select-field">
                                 <select id="item" class="selectItem">
-                                    <option value="">Choose an item to enchant</option>
+                                    <option value="" selected disabled hidden>Choose an item to enchant</option>
                                 </select>
                             </div>
                         </div>
@@ -60,7 +61,7 @@
                     </div>
                 </section>
 
-                <section id="right" class="panel solution-panel">
+                <section id="right" class="solution-panel">
                     <div id="solution" style="display: none">
                         <h2 id="solution-header">Optimal solution found!</h2>
                         <p id="solution-subheader"></p>
@@ -88,7 +89,9 @@
             </section>
 
             <footer class="footer">
-                <p>Inspired by <a href="https://github.com/iamcal/enchant-order">iamcal/enchant-order</a></p>
+                <span class="footer-spacer" aria-hidden="true"></span>
+                <a class="footer-vibe-link" href="https://www.youtube.com/@actualpug" target="_blank" rel="noopener noreferrer" aria-label="Open ActualPug YouTube channel">Vibe coded with ❤️ by ActualPug</a>
+                <p class="footer-credit">Inspired by <a href="https://github.com/iamcal/enchant-order">iamcal/enchant-order</a></p>
             </footer>
         </main>
     </body>
