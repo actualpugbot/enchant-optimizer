@@ -598,13 +598,10 @@ function updateSolutionIdentity(item_namespace, selected_enchantments) {
 
 function afterFoundOptimalSolution(msg) {
     $("#phone-warn").hide();
+    $("#timings").hide();
     const instructions = msg.instructions;
     const instructions_count = instructions.length;
     enchants_list = msg.enchants
-
-    const current_time = performance.now();
-    const elapsed_time_milliseconds = current_time - start_time;
-    updateTime(elapsed_time_milliseconds);
 
     const solution_section = $("#solution");
     const solution_header = $("#solution-header");
