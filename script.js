@@ -155,8 +155,14 @@ const LANGUAGE_CACHE_KEY = 11;
 const DEFAULT_CHEAPNESS_MODE = "levels";
 const APP_TITLE = "Enchant Optimizer";
 const APP_TAGLINE = "Get the optimal enchant order";
+const THEME_STORAGE_KEY = "enchant_optimizer_theme";
+const DARK_THEME = "dark";
+const LIGHT_THEME = "light";
+
+applyInitialTheme();
 
 window.onload = function() {
+    setupThemeToggle();
 
     resetWorker();
 
@@ -165,6 +171,69 @@ window.onload = function() {
     buildEnchantmentSelection();
     setupEnglishLanguage();
 };
+
+function normalizeTheme(theme) {
+    return theme === LIGHT_THEME ? LIGHT_THEME : DARK_THEME;
+}
+
+function readStoredTheme() {
+    let stored_theme = null;
+    try {
+        stored_theme = localStorage.getItem(THEME_STORAGE_KEY);
+    } catch (_error) {
+        stored_theme = null;
+    }
+    return normalizeTheme(stored_theme);
+}
+
+function persistTheme(theme) {
+    try {
+        localStorage.setItem(THEME_STORAGE_KEY, normalizeTheme(theme));
+    } catch (_error) {
+        // Ignore storage failures (private mode, blocked storage, etc.).
+    }
+}
+
+function applyTheme(theme) {
+    const normalized_theme = normalizeTheme(theme);
+    document.documentElement.setAttribute("data-theme", normalized_theme);
+    return normalized_theme;
+}
+
+function updateThemeToggle(theme) {
+    const toggle_button = document.getElementById("theme-toggle");
+    if (!toggle_button) return;
+
+    const normalized_theme = normalizeTheme(theme);
+    const next_theme = normalized_theme === DARK_THEME ? LIGHT_THEME : DARK_THEME;
+    const next_theme_text = next_theme === LIGHT_THEME ? "light" : "dark";
+    const current_theme_text = normalized_theme === LIGHT_THEME ? "light" : "dark";
+
+    toggle_button.setAttribute("aria-label", "Switch to " + next_theme_text + " mode");
+    toggle_button.setAttribute("title", "Theme: " + current_theme_text + ". Switch to " + next_theme_text + " mode");
+    toggle_button.setAttribute("aria-pressed", normalized_theme === LIGHT_THEME ? "true" : "false");
+}
+
+function applyInitialTheme() {
+    const initial_theme = readStoredTheme();
+    applyTheme(initial_theme);
+}
+
+function setupThemeToggle() {
+    const toggle_button = document.getElementById("theme-toggle");
+    if (!toggle_button) return;
+
+    const current_theme = applyTheme(readStoredTheme());
+    updateThemeToggle(current_theme);
+
+    toggle_button.addEventListener("click", function() {
+        const active_theme = normalizeTheme(document.documentElement.getAttribute("data-theme"));
+        const next_theme = active_theme === DARK_THEME ? LIGHT_THEME : DARK_THEME;
+        const applied_theme = applyTheme(next_theme);
+        persistTheme(applied_theme);
+        updateThemeToggle(applied_theme);
+    });
+}
 
 function resetWorker() {
     if (worker) {
