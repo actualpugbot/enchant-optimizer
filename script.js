@@ -8,7 +8,6 @@ let solutionPanelAnimation = null;
 let isSolutionPanelExiting = false;
 let finalPreviewAnimation = null;
 let isFinalPreviewExiting = false;
-let finalPreviewRenderToken = 0;
 let itemSelectorIdleTimer = null;
 let itemSelectorIdleAnimations = [];
 let itemSelectorIdleRunToken = 0;
@@ -1815,7 +1814,6 @@ function updateFinalPreview() {
     if (!languageJson) return;
 
     const preview = $("#final-preview");
-    const render_token = ++finalPreviewRenderToken;
     const item_namespace = retrieveSelectedItem();
 
     if (!item_namespace) {
@@ -1841,26 +1839,17 @@ function updateFinalPreview() {
         $("<li>").text(enchantment_text).appendTo(enchantment_list);
     });
 
-    runAfterImageLoad(icon_src, function() {
-        const is_latest_render = render_token === finalPreviewRenderToken;
-        const selected_item_namespace = retrieveSelectedItem();
-        const has_expected_selection = selected_item_namespace === item_namespace;
-        if (!is_latest_render || !has_expected_selection) {
-            return;
-        }
+    $("#final-preview-icon")
+        .attr("src", icon_src)
+        .attr("alt", item_name)
+        .toggleClass("final-preview-icon-enchanted", has_enchantments)
+        .toggleClass("final-preview-icon-unenchanted", !has_enchantments);
 
-        $("#final-preview-icon")
-            .attr("src", icon_src)
-            .attr("alt", item_name)
-            .toggleClass("final-preview-icon-enchanted", has_enchantments)
-            .toggleClass("final-preview-icon-unenchanted", !has_enchantments);
-
-        const should_animate_entry = !preview.is(":visible") || isFinalPreviewExiting;
-        preview.show();
-        if (should_animate_entry) {
-            animateFinalPreviewEntry(preview);
-        }
-    });
+    const should_animate_entry = !preview.is(":visible") || isFinalPreviewExiting;
+    preview.show();
+    if (should_animate_entry) {
+        animateFinalPreviewEntry(preview);
+    }
 }
 
 function runAutoCalculation() {
