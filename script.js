@@ -4,6 +4,10 @@ let worker;
 let languageJson;
 let enchants_list;
 let itemDropdownElements = null;
+let solutionPanelAnimation = null;
+let isSolutionPanelExiting = false;
+let finalPreviewAnimation = null;
+let isFinalPreviewExiting = false;
 
 const ITEM_ICON_VARIANTS = {
     sword: {
@@ -674,9 +678,9 @@ function buildEnchantmentSelection() {
             buildEnchantList(item_namespace_selected);
         } else {
             $("#enchants").hide();
-            $("#final-preview").hide();
+            animateFinalPreviewExit($("#final-preview"));
             $("#phone-warn").hide();
-            $("#solution").hide();
+            animateSolutionPanelExit($("#solution"));
             $("#error").hide();
         }
 
@@ -983,6 +987,308 @@ function updateSolutionIdentity(item_namespace) {
     solution_header.text(item_name);
 }
 
+function shouldReduceMotion() {
+    return window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+function cancelSolutionPanelAnimation() {
+    if (solutionPanelAnimation) {
+        solutionPanelAnimation.cancel();
+        solutionPanelAnimation = null;
+    }
+}
+
+function cancelFinalPreviewAnimation() {
+    if (finalPreviewAnimation) {
+        finalPreviewAnimation.cancel();
+        finalPreviewAnimation = null;
+    }
+}
+
+function animateSolutionPanelEntry(solution_section) {
+    const solution_node = solution_section && solution_section.length ? solution_section.get(0) : null;
+    const panel_node = document.getElementById("right");
+    if (!solution_node || !panel_node) return;
+
+    if (shouldReduceMotion()) {
+        return;
+    }
+
+    isSolutionPanelExiting = false;
+    cancelSolutionPanelAnimation();
+
+    const panel_rect = panel_node.getBoundingClientRect();
+    const solution_rect = solution_node.getBoundingClientRect();
+    const panel_has_size = panel_rect.width > 0 && panel_rect.height > 0;
+    const solution_has_size = solution_rect.width > 0 && solution_rect.height > 0;
+    if (!panel_has_size || !solution_has_size || typeof solution_node.animate !== "function") {
+        return;
+    }
+
+    const panel_center_x = panel_rect.left + panel_rect.width / 2;
+    const panel_center_y = panel_rect.top + panel_rect.height / 2;
+    const solution_center_x = solution_rect.left + solution_rect.width / 2;
+    const solution_center_y = solution_rect.top + solution_rect.height / 2;
+
+    const offset_x = panel_center_x - solution_center_x;
+    const offset_y = panel_center_y - solution_center_y;
+
+    solution_node.style.transformOrigin = "center center";
+    solution_node.style.willChange = "transform, opacity";
+
+    solutionPanelAnimation = solution_node.animate(
+        [
+            {
+                transform: "translate(" + offset_x + "px, " + offset_y + "px) scale(0.04)",
+                opacity: 0,
+            },
+            {
+                transform: "translate(0px, 0px) scale(1)",
+                opacity: 1,
+            },
+        ],
+        {
+            duration: 360,
+            easing: "cubic-bezier(0.16, 1, 0.3, 1)",
+        }
+    );
+
+    const clearAnimationState = function() {
+        solution_node.style.willChange = "";
+        solutionPanelAnimation = null;
+    };
+
+    solutionPanelAnimation.addEventListener("finish", clearAnimationState, { once: true });
+    solutionPanelAnimation.addEventListener("cancel", clearAnimationState, { once: true });
+}
+
+function animateSolutionPanelExit(solution_section) {
+    const solution_node = solution_section && solution_section.length ? solution_section.get(0) : null;
+    const panel_node = document.getElementById("right");
+    if (!solution_node || !panel_node) return;
+
+    const solution_visible = solution_section.is(":visible");
+    if (!solution_visible) {
+        isSolutionPanelExiting = false;
+        cancelSolutionPanelAnimation();
+        return;
+    }
+
+    if (shouldReduceMotion()) {
+        isSolutionPanelExiting = false;
+        cancelSolutionPanelAnimation();
+        solution_section.hide();
+        return;
+    }
+
+    cancelSolutionPanelAnimation();
+
+    const panel_rect = panel_node.getBoundingClientRect();
+    const solution_rect = solution_node.getBoundingClientRect();
+    const panel_has_size = panel_rect.width > 0 && panel_rect.height > 0;
+    const solution_has_size = solution_rect.width > 0 && solution_rect.height > 0;
+    if (!panel_has_size || !solution_has_size || typeof solution_node.animate !== "function") {
+        isSolutionPanelExiting = false;
+        cancelSolutionPanelAnimation();
+        solution_section.hide();
+        return;
+    }
+
+    const panel_center_x = panel_rect.left + panel_rect.width / 2;
+    const panel_center_y = panel_rect.top + panel_rect.height / 2;
+    const solution_center_x = solution_rect.left + solution_rect.width / 2;
+    const solution_center_y = solution_rect.top + solution_rect.height / 2;
+    const offset_x = panel_center_x - solution_center_x;
+    const offset_y = panel_center_y - solution_center_y;
+
+    isSolutionPanelExiting = true;
+
+    solution_node.style.transformOrigin = "center center";
+    solution_node.style.willChange = "transform, opacity";
+
+    solutionPanelAnimation = solution_node.animate(
+        [
+            {
+                transform: "translate(0px, 0px) scale(1)",
+                opacity: 1,
+            },
+            {
+                transform: "translate(" + offset_x + "px, " + offset_y + "px) scale(0.04)",
+                opacity: 0,
+            },
+        ],
+        {
+            duration: 300,
+            easing: "cubic-bezier(0.7, 0, 0.84, 0)",
+        }
+    );
+
+    const resetAnimationState = function() {
+        solution_node.style.willChange = "";
+        solutionPanelAnimation = null;
+    };
+
+    const completeExit = function() {
+        solution_section.hide();
+        isSolutionPanelExiting = false;
+        resetAnimationState();
+    };
+
+    const cancelExit = function() {
+        isSolutionPanelExiting = false;
+        resetAnimationState();
+    };
+
+    solutionPanelAnimation.addEventListener("finish", completeExit, { once: true });
+    solutionPanelAnimation.addEventListener("cancel", cancelExit, { once: true });
+}
+
+function finalPreviewOffsetFromTable(preview_node) {
+    const table_node = document.querySelector("#enchants .table-wrap");
+    if (!table_node) return null;
+
+    const table_rect = table_node.getBoundingClientRect();
+    const preview_rect = preview_node.getBoundingClientRect();
+    const table_has_size = table_rect.width > 0 && table_rect.height > 0;
+    const preview_has_size = preview_rect.width > 0 && preview_rect.height > 0;
+    if (!table_has_size || !preview_has_size) return null;
+
+    const preview_center_x = preview_rect.left + preview_rect.width / 2;
+    const preview_center_y = preview_rect.top + preview_rect.height / 2;
+
+    // Start from the bottom middle just below the enchants table.
+    const source_x = table_rect.left + table_rect.width / 2;
+    const source_y = table_rect.bottom + Math.min(44, Math.max(12, table_rect.height * 0.07));
+
+    return {
+        offset_x: source_x - preview_center_x,
+        offset_y: source_y - preview_center_y,
+    };
+}
+
+function animateFinalPreviewEntry(preview_section) {
+    const preview_node = preview_section && preview_section.length
+        ? preview_section.find(".final-preview-card").get(0)
+        : null;
+    if (!preview_node) return;
+
+    if (shouldReduceMotion()) {
+        return;
+    }
+
+    isFinalPreviewExiting = false;
+    cancelFinalPreviewAnimation();
+
+    const offset = finalPreviewOffsetFromTable(preview_node);
+    if (!offset || typeof preview_node.animate !== "function") {
+        return;
+    }
+
+    preview_node.style.transformOrigin = "center center";
+    preview_node.style.willChange = "transform, opacity";
+
+    finalPreviewAnimation = preview_node.animate(
+        [
+            {
+                transform: "translate(" + offset.offset_x + "px, " + offset.offset_y + "px) scale(0.04)",
+                opacity: 0,
+            },
+            {
+                transform: "translate(0px, 0px) scale(1)",
+                opacity: 1,
+            },
+        ],
+        {
+            duration: 320,
+            easing: "cubic-bezier(0.16, 1, 0.3, 1)",
+        }
+    );
+
+    const clearAnimationState = function() {
+        preview_node.style.willChange = "";
+        finalPreviewAnimation = null;
+    };
+
+    finalPreviewAnimation.addEventListener("finish", clearAnimationState, { once: true });
+    finalPreviewAnimation.addEventListener("cancel", clearAnimationState, { once: true });
+}
+
+function animateFinalPreviewExit(preview_section) {
+    const preview_node = preview_section && preview_section.length
+        ? preview_section.find(".final-preview-card").get(0)
+        : null;
+    if (!preview_node) return;
+
+    const preview_visible = preview_section.is(":visible");
+    if (!preview_visible) {
+        isFinalPreviewExiting = false;
+        cancelFinalPreviewAnimation();
+        return;
+    }
+
+    if (isFinalPreviewExiting) {
+        return;
+    }
+
+    if (shouldReduceMotion()) {
+        isFinalPreviewExiting = false;
+        cancelFinalPreviewAnimation();
+        preview_section.hide();
+        return;
+    }
+
+    cancelFinalPreviewAnimation();
+
+    const offset = finalPreviewOffsetFromTable(preview_node);
+    if (!offset || typeof preview_node.animate !== "function") {
+        isFinalPreviewExiting = false;
+        cancelFinalPreviewAnimation();
+        preview_section.hide();
+        return;
+    }
+
+    isFinalPreviewExiting = true;
+
+    preview_node.style.transformOrigin = "center center";
+    preview_node.style.willChange = "transform, opacity";
+
+    finalPreviewAnimation = preview_node.animate(
+        [
+            {
+                transform: "translate(0px, 0px) scale(1)",
+                opacity: 1,
+            },
+            {
+                transform: "translate(" + offset.offset_x + "px, " + offset.offset_y + "px) scale(0.04)",
+                opacity: 0,
+            },
+        ],
+        {
+            duration: 260,
+            easing: "cubic-bezier(0.7, 0, 0.84, 0)",
+        }
+    );
+
+    const resetAnimationState = function() {
+        preview_node.style.willChange = "";
+        finalPreviewAnimation = null;
+    };
+
+    const completeExit = function() {
+        preview_section.hide();
+        isFinalPreviewExiting = false;
+        resetAnimationState();
+    };
+
+    const cancelExit = function() {
+        isFinalPreviewExiting = false;
+        resetAnimationState();
+    };
+
+    finalPreviewAnimation.addEventListener("finish", completeExit, { once: true });
+    finalPreviewAnimation.addEventListener("cancel", cancelExit, { once: true });
+}
+
 
 function afterFoundOptimalSolution(msg) {
     $("#phone-warn").hide();
@@ -994,9 +1300,13 @@ function afterFoundOptimalSolution(msg) {
     const solution_header = $("#solution-header");
     const solution_steps = $("#steps");
     const steps_header = $("#solution h3");
+    const should_animate_entry = !solution_section.is(":visible") || isSolutionPanelExiting;
 
     solution_steps.html("");
     solution_section.show();
+    if (should_animate_entry) {
+        animateSolutionPanelEntry(solution_section);
+    }
 
     if (instructions_count === 0) {
         solution_header.html(languageJson.no_solution_found);
@@ -1198,14 +1508,14 @@ function updateFinalPreview() {
     const item_namespace = retrieveSelectedItem();
 
     if (!item_namespace) {
-        preview.hide();
+        animateFinalPreviewExit(preview);
         return;
     }
 
     const enchantment_foundation = retrieveEnchantmentFoundation();
     const has_enchantments = enchantment_foundation.length > 0;
     if (!has_enchantments) {
-        preview.hide();
+        animateFinalPreviewExit(preview);
         return;
     }
 
@@ -1225,7 +1535,11 @@ function updateFinalPreview() {
         $("<li>").text(enchantment_text).appendTo(enchantment_list);
     });
 
+    const should_animate_entry = !preview.is(":visible") || isFinalPreviewExiting;
     preview.show();
+    if (should_animate_entry) {
+        animateFinalPreviewEntry(preview);
+    }
 }
 
 function runAutoCalculation() {
@@ -1241,7 +1555,7 @@ function runAutoCalculation() {
     }
 
     $("#phone-warn").hide();
-    $("#solution").hide();
+    animateSolutionPanelExit($("#solution"));
     $("#error").hide();
     updateSolutionHeader(DEFAULT_CHEAPNESS_MODE);
 }
