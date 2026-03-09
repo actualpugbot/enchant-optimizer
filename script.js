@@ -708,32 +708,10 @@ function addInstructionDisplay(instruction, step_number) {
     $("#steps").append(step_element);
 }
 
-function updateSolutionIdentity(item_namespace, selected_enchantments) {
+function updateSolutionIdentity(item_namespace) {
     const solution_header = $("#solution-header");
     const item_name = displayItemName(item_namespace, true);
     solution_header.text(item_name);
-
-    const pickaxe_priority = ["silk_touch", "fortune"];
-    let signature_enchant = "";
-
-    if (item_namespace === "pickaxe") {
-        pickaxe_priority.forEach(enchantment_namespace => {
-            if (!signature_enchant && selected_enchantments.includes(enchantment_namespace)) {
-                signature_enchant = enchantment_namespace;
-            }
-        });
-    }
-
-    if (!signature_enchant && selected_enchantments.length === 1) {
-        signature_enchant = selected_enchantments[0];
-    }
-
-    if (signature_enchant) {
-        const signature_text = "[" + displayEnchantmentLine(signature_enchant) + "]";
-        $("#solution-subheader").text(signature_text);
-    } else {
-        $("#solution-subheader").text("");
-    }
 }
 
 
@@ -754,13 +732,11 @@ function afterFoundOptimalSolution(msg) {
 
     if (instructions_count === 0) {
         solution_header.html(languageJson.no_solution_found);
-        $("#solution-subheader").text("");
         steps_header.html("");
         updateCumulativeCost(0, 0);
     } else {
         const item_namespace = retrieveSelectedItem();
-        const selected_enchantments = msg.enchants.map(([enchantment_namespace]) => enchantment_namespace);
-        updateSolutionIdentity(item_namespace, selected_enchantments);
+        updateSolutionIdentity(item_namespace);
 
         steps_header.html(languageJson.steps);
 
@@ -977,14 +953,12 @@ function updateSolutionHeader(mode) {
     const selected_item_namespace = retrieveSelectedItem();
     if (selected_item_namespace) {
         $("#solution-header").text(displayItemName(selected_item_namespace, true));
-        $("#solution-subheader").text("");
         return;
     }
 
     const solution_header_text = solutionHeaderTextFromMode(mode);
     const solution_header = $("#solution-header");
     solution_header.text(solution_header_text);
-    $("#solution-subheader").text("");
 }
 
 function startCalculating(item_namespace, enchantment_foundation, mode) {

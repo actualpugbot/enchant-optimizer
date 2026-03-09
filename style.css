@@ -368,15 +368,6 @@ input:focus-visible {
     text-shadow: 0 4px 0 rgba(0, 0, 0, 0.35);
 }
 
-#solution-subheader {
-    min-height: 1.1rem;
-    margin: 0.25rem 0 0;
-    text-align: center;
-    font-family: var(--font-pixel);
-    font-size: 0.78rem;
-    color: #d5ddec;
-}
-
 .total-cost-row {
     margin: 0.55rem 0 0.75rem;
     display: flex;
