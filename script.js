@@ -9,6 +9,10 @@ let isSolutionPanelExiting = false;
 let finalPreviewAnimation = null;
 let isFinalPreviewExiting = false;
 let finalPreviewRenderToken = 0;
+let itemSelectorIdleTimer = null;
+let itemSelectorIdleAnimations = [];
+let itemSelectorIdleRunToken = 0;
+let itemSelectorIdleCurrentIndex = 0;
 
 const ITEM_ICON_VARIANTS = {
     sword: {
@@ -145,6 +149,11 @@ const ITEM_DROPDOWN_GROUP_MAP = ITEM_DROPDOWN_GROUPS.reduce((lookup, group) => {
     return lookup;
 }, {});
 const DEFAULT_PREVIEW_ITEM_NAMESPACE = data.items[0] || "sword";
+const ITEM_SELECTOR_IDLE_ITEM_NAMESPACES = Array.from(new Set(data.items));
+const ITEM_SELECTOR_IDLE_PAUSE_MS = 1500;
+const ITEM_SELECTOR_IDLE_TRANSITION_MS = 460;
+const ITEM_SELECTOR_IDLE_TRANSITION_DISTANCE_PX = 58;
+const ITEM_SELECTOR_IDLE_TRANSITION_EASING = "cubic-bezier(0.42, 0, 0.22, 1)";
 
 const ENGLISH_LANGUAGE_ID = "en";
 const LANGUAGE_CACHE_KEY = 11;
@@ -268,7 +277,10 @@ function setupItemCustomDropdown() {
         '<button type="button" class="custom-select-trigger" aria-haspopup="listbox" aria-expanded="false">' +
             '<span class="custom-select-trigger-main">' +
                 '<span class="custom-select-trigger-icon-wrap" aria-hidden="true">' +
-                    '<img id="item-custom-select-icon" class="custom-select-trigger-icon item-select-icon-unenchanted" src="' + iconPathForItem(DEFAULT_PREVIEW_ITEM_NAMESPACE, false) + '" alt="">' +
+                    '<span id="item-custom-select-glow-primary" class="custom-select-trigger-glow"></span>' +
+                    '<span id="item-custom-select-glow-secondary" class="custom-select-trigger-glow custom-select-trigger-glow-secondary"></span>' +
+                    '<img id="item-custom-select-icon-primary" class="custom-select-trigger-icon item-select-icon-unenchanted" src="' + iconPathForItem(DEFAULT_PREVIEW_ITEM_NAMESPACE, false) + '" alt="">' +
+                    '<img id="item-custom-select-icon-secondary" class="custom-select-trigger-icon custom-select-trigger-icon-secondary item-select-icon-unenchanted" src="' + iconPathForItem(DEFAULT_PREVIEW_ITEM_NAMESPACE, false) + '" alt="">' +
                 '</span>' +
                 '<span class="custom-select-value"></span>' +
             "</span>" +
@@ -281,11 +293,24 @@ function setupItemCustomDropdown() {
     native_select.setAttribute("aria-hidden", "true");
 
     const trigger = dropdown_root.querySelector(".custom-select-trigger");
-    const trigger_icon = dropdown_root.querySelector("#item-custom-select-icon");
+    const trigger_glow_primary = dropdown_root.querySelector("#item-custom-select-glow-primary");
+    const trigger_glow_secondary = dropdown_root.querySelector("#item-custom-select-glow-secondary");
+    const trigger_icon_primary = dropdown_root.querySelector("#item-custom-select-icon-primary");
+    const trigger_icon_secondary = dropdown_root.querySelector("#item-custom-select-icon-secondary");
     const value_label = dropdown_root.querySelector(".custom-select-value");
     const menu = dropdown_root.querySelector(".custom-select-menu");
 
-    itemDropdownElements = { native_select, dropdown_root, trigger, trigger_icon, value_label, menu };
+    itemDropdownElements = {
+        native_select,
+        dropdown_root,
+        trigger,
+        trigger_glow_primary,
+        trigger_glow_secondary,
+        trigger_icon_primary,
+        trigger_icon_secondary,
+        value_label,
+        menu,
+    };
 
     trigger.addEventListener("click", function() {
         const is_open = dropdown_root.classList.contains("is-open");
@@ -379,6 +404,7 @@ function setupItemCustomDropdown() {
     });
 
     rebuildItemCustomDropdown();
+    updateItemSelectorPreview();
 }
 
 function getItemCustomOptionButtons() {
@@ -512,6 +538,7 @@ function openItemCustomDropdown() {
     const focus_target = option_buttons[focus_index];
     focus_target.focus();
     focus_target.scrollIntoView({ block: "nearest" });
+    syncItemSelectorIdleCarouselState();
 }
 
 function closeItemCustomDropdown(return_focus_to_trigger = false) {
@@ -528,6 +555,8 @@ function closeItemCustomDropdown(return_focus_to_trigger = false) {
     if (return_focus_to_trigger) {
         trigger.focus();
     }
+
+    syncItemSelectorIdleCarouselState();
 }
 
 function selectItemCustomDropdownValue(item_namespace) {
@@ -545,21 +574,249 @@ function selectItemCustomDropdownValue(item_namespace) {
     closeItemCustomDropdown(true);
 }
 
-function updateItemSelectorPreview() {
-    const item_namespace = retrieveSelectedItem();
-    const item_preview_icon = itemDropdownElements ? itemDropdownElements.trigger_icon : null;
-    if (!item_preview_icon) return;
+function cancelItemSelectorIdleAnimations() {
+    if (itemSelectorIdleAnimations.length === 0) return;
+    itemSelectorIdleAnimations.forEach(animation => {
+        if (animation && typeof animation.cancel === "function") {
+            animation.cancel();
+        }
+    });
+    itemSelectorIdleAnimations = [];
+}
 
-    if (!item_namespace) {
-        item_preview_icon.src = iconPathForItem(DEFAULT_PREVIEW_ITEM_NAMESPACE, false);
-        item_preview_icon.alt = "";
-        item_preview_icon.classList.toggle("item-select-icon-unenchanted", true);
+function setItemSelectorPreviewIcon(item_namespace) {
+    if (!itemDropdownElements) return;
+    const glow_primary = itemDropdownElements.trigger_glow_primary;
+    const glow_secondary = itemDropdownElements.trigger_glow_secondary;
+    const icon_primary = itemDropdownElements.trigger_icon_primary;
+    const icon_secondary = itemDropdownElements.trigger_icon_secondary;
+    if (!glow_primary || !glow_secondary || !icon_primary || !icon_secondary) return;
+
+    const icon_src = iconPathForItem(item_namespace, false);
+    icon_primary.src = icon_src;
+    icon_primary.alt = "";
+    icon_secondary.alt = "";
+
+    glow_primary.style.opacity = "1";
+    glow_primary.style.visibility = "visible";
+    glow_primary.style.transform = "translate(-50%, -50%) translateY(0px)";
+
+    glow_secondary.style.opacity = "0";
+    glow_secondary.style.visibility = "hidden";
+    glow_secondary.style.transform = "translate(-50%, -50%) translateY(" + ITEM_SELECTOR_IDLE_TRANSITION_DISTANCE_PX + "px)";
+
+    icon_primary.style.opacity = "1";
+    icon_primary.style.visibility = "visible";
+    icon_primary.style.transform = "translate(-50%, -50%) translateY(0px)";
+
+    icon_secondary.style.opacity = "0";
+    icon_secondary.style.visibility = "hidden";
+    icon_secondary.style.transform = "translate(-50%, -50%) translateY(" + ITEM_SELECTOR_IDLE_TRANSITION_DISTANCE_PX + "px)";
+}
+
+function indexForItemSelectorIdleNamespace(item_namespace) {
+    const index = ITEM_SELECTOR_IDLE_ITEM_NAMESPACES.indexOf(item_namespace);
+    return index >= 0 ? index : 0;
+}
+
+function shouldRunItemSelectorIdleCarousel() {
+    if (!itemDropdownElements) return false;
+    if (shouldReduceMotion()) return false;
+
+    const has_selected_item = !!retrieveSelectedItem();
+    if (has_selected_item) return false;
+
+    const dropdown_open = itemDropdownElements.dropdown_root.classList.contains("is-open");
+    if (dropdown_open) return false;
+
+    return ITEM_SELECTOR_IDLE_ITEM_NAMESPACES.length > 1;
+}
+
+function stopItemSelectorIdleCarousel() {
+    if (itemSelectorIdleTimer) {
+        clearTimeout(itemSelectorIdleTimer);
+        itemSelectorIdleTimer = null;
+    }
+
+    itemSelectorIdleRunToken += 1;
+    cancelItemSelectorIdleAnimations();
+
+    if (itemDropdownElements) {
+        const selected_item = retrieveSelectedItem();
+        const stable_namespace = selected_item || ITEM_SELECTOR_IDLE_ITEM_NAMESPACES[itemSelectorIdleCurrentIndex] || DEFAULT_PREVIEW_ITEM_NAMESPACE;
+        setItemSelectorPreviewIcon(stable_namespace);
+    }
+}
+
+function queueItemSelectorIdleStep(run_token, delay_ms) {
+    if (itemSelectorIdleTimer) {
+        clearTimeout(itemSelectorIdleTimer);
+    }
+
+    itemSelectorIdleTimer = window.setTimeout(function() {
+        runItemSelectorIdleStep(run_token);
+    }, delay_ms);
+}
+
+function runItemSelectorIdleStep(run_token) {
+    itemSelectorIdleTimer = null;
+    if (run_token !== itemSelectorIdleRunToken) return;
+    if (!shouldRunItemSelectorIdleCarousel()) {
+        stopItemSelectorIdleCarousel();
+        return;
+    }
+    if (!itemDropdownElements) return;
+
+    const glow_primary = itemDropdownElements.trigger_glow_primary;
+    const glow_secondary = itemDropdownElements.trigger_glow_secondary;
+    const icon_primary = itemDropdownElements.trigger_icon_primary;
+    const icon_secondary = itemDropdownElements.trigger_icon_secondary;
+    if (!glow_primary || !glow_secondary || !icon_primary || !icon_secondary) return;
+
+    const icon_count = ITEM_SELECTOR_IDLE_ITEM_NAMESPACES.length;
+    const next_index = (itemSelectorIdleCurrentIndex + 1) % icon_count;
+    const next_namespace = ITEM_SELECTOR_IDLE_ITEM_NAMESPACES[next_index];
+    const next_icon_src = iconPathForItem(next_namespace, false);
+
+    runAfterImageLoad(next_icon_src, function() {
+        if (run_token !== itemSelectorIdleRunToken || !shouldRunItemSelectorIdleCarousel()) {
+            return;
+        }
+
+        glow_secondary.style.visibility = "visible";
+        glow_secondary.style.opacity = "1";
+        glow_secondary.style.transform = "translate(-50%, -50%) translateY(" + ITEM_SELECTOR_IDLE_TRANSITION_DISTANCE_PX + "px)";
+
+        icon_secondary.src = next_icon_src;
+        icon_secondary.alt = "";
+        icon_secondary.style.visibility = "visible";
+        icon_secondary.style.opacity = "1";
+        icon_secondary.style.transform = "translate(-50%, -50%) translateY(" + ITEM_SELECTOR_IDLE_TRANSITION_DISTANCE_PX + "px)";
+
+        if (
+            typeof glow_primary.animate !== "function" ||
+            typeof glow_secondary.animate !== "function" ||
+            typeof icon_primary.animate !== "function" ||
+            typeof icon_secondary.animate !== "function"
+        ) {
+            itemSelectorIdleCurrentIndex = next_index;
+            setItemSelectorPreviewIcon(next_namespace);
+            queueItemSelectorIdleStep(run_token, ITEM_SELECTOR_IDLE_PAUSE_MS);
+            return;
+        }
+
+        cancelItemSelectorIdleAnimations();
+
+        const animation_options = {
+            duration: ITEM_SELECTOR_IDLE_TRANSITION_MS,
+            easing: ITEM_SELECTOR_IDLE_TRANSITION_EASING,
+            fill: "forwards",
+        };
+
+        const outgoing_glow_animation = glow_primary.animate(
+            [
+                { transform: "translate(-50%, -50%) translateY(0px)", opacity: 1 },
+                { transform: "translate(-50%, -50%) translateY(-" + ITEM_SELECTOR_IDLE_TRANSITION_DISTANCE_PX + "px)", opacity: 0 },
+            ],
+            animation_options
+        );
+        const incoming_glow_animation = glow_secondary.animate(
+            [
+                { transform: "translate(-50%, -50%) translateY(" + ITEM_SELECTOR_IDLE_TRANSITION_DISTANCE_PX + "px)", opacity: 0 },
+                { transform: "translate(-50%, -50%) translateY(0px)", opacity: 1 },
+            ],
+            animation_options
+        );
+        const outgoing_animation = icon_primary.animate(
+            [
+                { transform: "translate(-50%, -50%) translateY(0px)", opacity: 1 },
+                { transform: "translate(-50%, -50%) translateY(-" + ITEM_SELECTOR_IDLE_TRANSITION_DISTANCE_PX + "px)", opacity: 0 },
+            ],
+            animation_options
+        );
+        const incoming_animation = icon_secondary.animate(
+            [
+                { transform: "translate(-50%, -50%) translateY(" + ITEM_SELECTOR_IDLE_TRANSITION_DISTANCE_PX + "px)", opacity: 0 },
+                { transform: "translate(-50%, -50%) translateY(0px)", opacity: 1 },
+            ],
+            animation_options
+        );
+
+        itemSelectorIdleAnimations = [
+            outgoing_glow_animation,
+            incoming_glow_animation,
+            outgoing_animation,
+            incoming_animation,
+        ];
+
+        const completeTransition = function() {
+            cancelItemSelectorIdleAnimations();
+            if (run_token !== itemSelectorIdleRunToken || !shouldRunItemSelectorIdleCarousel()) {
+                return;
+            }
+
+            itemSelectorIdleCurrentIndex = next_index;
+            setItemSelectorPreviewIcon(next_namespace);
+            queueItemSelectorIdleStep(run_token, ITEM_SELECTOR_IDLE_PAUSE_MS);
+        };
+
+        let completed_count = 0;
+        const onAnimationDone = function() {
+            completed_count += 1;
+            if (completed_count === 4) {
+                completeTransition();
+            }
+        };
+
+        outgoing_glow_animation.addEventListener("finish", onAnimationDone, { once: true });
+        outgoing_glow_animation.addEventListener("cancel", onAnimationDone, { once: true });
+        incoming_glow_animation.addEventListener("finish", onAnimationDone, { once: true });
+        incoming_glow_animation.addEventListener("cancel", onAnimationDone, { once: true });
+        outgoing_animation.addEventListener("finish", onAnimationDone, { once: true });
+        outgoing_animation.addEventListener("cancel", onAnimationDone, { once: true });
+        incoming_animation.addEventListener("finish", onAnimationDone, { once: true });
+        incoming_animation.addEventListener("cancel", onAnimationDone, { once: true });
+    });
+}
+
+function syncItemSelectorIdleCarouselState() {
+    if (!itemDropdownElements) return;
+
+    if (!shouldRunItemSelectorIdleCarousel()) {
+        stopItemSelectorIdleCarousel();
         return;
     }
 
-    item_preview_icon.src = iconPathForItem(item_namespace, false);
-    item_preview_icon.alt = "";
-    item_preview_icon.classList.toggle("item-select-icon-unenchanted", true);
+    const selected_item = retrieveSelectedItem();
+    const initial_namespace = selected_item || ITEM_SELECTOR_IDLE_ITEM_NAMESPACES[itemSelectorIdleCurrentIndex] || DEFAULT_PREVIEW_ITEM_NAMESPACE;
+    itemSelectorIdleCurrentIndex = indexForItemSelectorIdleNamespace(initial_namespace);
+    setItemSelectorPreviewIcon(initial_namespace);
+
+    const is_running = itemSelectorIdleTimer || itemSelectorIdleAnimations.length > 0;
+    if (is_running) {
+        return;
+    }
+
+    itemSelectorIdleRunToken += 1;
+    const run_token = itemSelectorIdleRunToken;
+    queueItemSelectorIdleStep(run_token, ITEM_SELECTOR_IDLE_PAUSE_MS);
+}
+
+function updateItemSelectorPreview() {
+    const item_namespace = retrieveSelectedItem();
+    if (!itemDropdownElements) return;
+
+    if (!item_namespace) {
+        setItemSelectorPreviewIcon(
+            ITEM_SELECTOR_IDLE_ITEM_NAMESPACES[itemSelectorIdleCurrentIndex] || DEFAULT_PREVIEW_ITEM_NAMESPACE
+        );
+        syncItemSelectorIdleCarouselState();
+        return;
+    }
+
+    stopItemSelectorIdleCarousel();
+    itemSelectorIdleCurrentIndex = indexForItemSelectorIdleNamespace(item_namespace);
+    setItemSelectorPreviewIcon(item_namespace);
 }
 
 function incompatibleGroupFromNamespace(enchantment_namespace) {

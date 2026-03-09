@@ -298,16 +298,27 @@ input:focus-visible {
     place-items: center;
     display: grid;
     flex: 0 0 auto;
+    overflow: hidden;
 }
 
-.custom-select-trigger-icon-wrap::before {
-    content: "";
+.custom-select-trigger-glow {
     position: absolute;
+    top: 50%;
+    left: 50%;
     width: 40px;
     height: 40px;
     border-radius: 50%;
     background: radial-gradient(circle, rgba(126, 154, 191, 0.48) 0%, rgba(126, 154, 191, 0) 72%);
     pointer-events: none;
+    transform: translate(-50%, -50%) translateY(0px);
+    z-index: 0;
+    will-change: transform, opacity;
+}
+
+.custom-select-trigger-glow-secondary {
+    opacity: 0;
+    visibility: hidden;
+    transform: translate(-50%, -50%) translateY(58px);
 }
 
 .custom-select-trigger-icon {
@@ -315,8 +326,18 @@ input:focus-visible {
     height: 40px;
     object-fit: contain;
     image-rendering: pixelated;
-    position: relative;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) translateY(0px);
     z-index: 1;
+    will-change: transform, opacity;
+}
+
+.custom-select-trigger-icon-secondary {
+    opacity: 0;
+    visibility: hidden;
+    transform: translate(-50%, -50%) translateY(58px);
 }
 
 .custom-select-trigger:hover {
@@ -932,7 +953,7 @@ html[data-theme="light"] .custom-select-trigger-icon-wrap {
     background: transparent;
 }
 
-html[data-theme="light"] .custom-select-trigger-icon-wrap::before {
+html[data-theme="light"] .custom-select-trigger-glow {
     background: radial-gradient(circle, rgba(126, 154, 191, 0.34) 0%, rgba(126, 154, 191, 0) 72%);
 }
 
