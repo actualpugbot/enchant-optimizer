@@ -228,10 +228,7 @@ function setupItemCustomDropdown() {
     dropdown_root.hidden = false;
     dropdown_root.innerHTML =
         '<button type="button" class="custom-select-trigger" aria-haspopup="listbox" aria-expanded="false">' +
-            '<span class="custom-select-trigger-main">' +
-                '<img class="custom-select-trigger-icon" alt="" aria-hidden="true" hidden>' +
-                '<span class="custom-select-value"></span>' +
-            "</span>" +
+            '<span class="custom-select-value"></span>' +
             '<span class="custom-select-caret" aria-hidden="true"></span>' +
         "</button>" +
         '<div class="custom-select-menu" role="listbox" tabindex="-1" hidden></div>';
@@ -241,11 +238,10 @@ function setupItemCustomDropdown() {
     native_select.setAttribute("aria-hidden", "true");
 
     const trigger = dropdown_root.querySelector(".custom-select-trigger");
-    const trigger_icon = dropdown_root.querySelector(".custom-select-trigger-icon");
     const value_label = dropdown_root.querySelector(".custom-select-value");
     const menu = dropdown_root.querySelector(".custom-select-menu");
 
-    itemDropdownElements = { native_select, dropdown_root, trigger, trigger_icon, value_label, menu };
+    itemDropdownElements = { native_select, dropdown_root, trigger, value_label, menu };
 
     trigger.addEventListener("click", function() {
         const is_open = dropdown_root.classList.contains("is-open");
@@ -439,7 +435,7 @@ function itemDropdownGroupLabel(group_id) {
 function syncItemCustomDropdownFromNative() {
     if (!itemDropdownElements) return;
 
-    const { native_select, trigger, trigger_icon, value_label, menu } = itemDropdownElements;
+    const { native_select, trigger, value_label, menu } = itemDropdownElements;
     const selected_option = native_select.options[native_select.selectedIndex];
     const has_selected_value = !!native_select.value;
     const placeholder_text = native_select.options.length ? native_select.options[0].textContent : "";
@@ -447,13 +443,6 @@ function syncItemCustomDropdownFromNative() {
 
     value_label.textContent = display_text;
     trigger.classList.toggle("is-placeholder", !has_selected_value);
-    if (has_selected_value && trigger_icon) {
-        trigger_icon.src = iconPathForItem(native_select.value, false);
-        trigger_icon.hidden = false;
-    } else if (trigger_icon) {
-        trigger_icon.hidden = true;
-        trigger_icon.removeAttribute("src");
-    }
 
     const option_buttons = menu.querySelectorAll("button.custom-select-option");
     option_buttons.forEach(option_button => {
