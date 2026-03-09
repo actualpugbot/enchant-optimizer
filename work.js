@@ -43,21 +43,9 @@ function process(item, enchants, mode = 'levels') {
         return item.l > array[maxIndex].l ? currentIndex : maxIndex;
     }, 0);
 
-    let id;
-    if (ITEM_NAME === 'book') {
-        id = enchant_objs[mostExpensive].e[0]
-        item = new item_obj(id, enchant_objs[mostExpensive].l) // Makes the most expensive book the base
-        item.e.push(id)
-        enchant_objs.splice(mostExpensive, 1)
-        // Finds a new most expensive enchant
-        mostExpensive = enchant_objs.reduce((maxIndex, item, currentIndex, array) => {
-            return item.l > array[maxIndex].l ? currentIndex : maxIndex;
-        }, 0);
-    } else {
-        item = new item_obj('item')
-    }
-    let merged_item = new MergeEnchants(item, enchant_objs[mostExpensive]) // Merges the most expensive enchant with the item
-    merged_item.c.L = {I: item.i, l: 0, w: 0}
+    const base_item = new item_obj('item')
+    let merged_item = new MergeEnchants(base_item, enchant_objs[mostExpensive]) // Merges the most expensive enchant with the item
+    merged_item.c.L = {I: base_item.i, l: 0, w: 0}
     enchant_objs.splice(mostExpensive, 1)
 
     let all_objs = enchant_objs.concat(merged_item)
@@ -377,7 +365,7 @@ function cheapestItemsFromDictionaries2(left_work2item, right_work2item) {
 
 class item_obj {
     constructor(name, value = 0, id = []) {
-        this.i = name // item namespace: 'book' or 'item'
+        this.i = name // item namespace or placeholder
         this.e = id // enchant id
         this.c = {} // stores instructions
         this.w = 0 // work

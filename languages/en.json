@@ -6,7 +6,6 @@
         "ranged": "Ranged",
         "tools": "Tools",
         "utility": "Utility",
-        "books": "Books",
         "ungrouped": "Other"
     },
     "optimal_solution_cumulative_levels": "Optimal solution found (by lowest cumulative levels)!",

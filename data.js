@@ -297,6 +297,5 @@ var data = {
         'carrot_on_a_stick',
         'warped_fungus_on_a_stick',
         'pumpkin',
-        'book',
     ]
 };

@@ -89,7 +89,7 @@ const ITEM_ICON_VARIANTS = {
     },
     flint_and_steel: {
         base: "./images/flint_and_steel.gif",
-        enchanted: "./images/flint_and_steel_enchanted.png",
+        enchanted: "./images/flint_and_steel.gif",
     },
     carrot_on_a_stick: {
         base: "./images/carrot_on_a_stick.gif",
@@ -136,11 +136,6 @@ const ITEM_DROPDOWN_GROUPS = [
         label: "Utility",
         items: ["fishing_rod", "shears", "flint_and_steel", "carrot_on_a_stick", "warped_fungus_on_a_stick", "pumpkin"],
     },
-    {
-        id: "books",
-        label: "Books",
-        items: ["book"],
-    },
 ];
 
 const ITEM_DROPDOWN_GROUP_MAP = ITEM_DROPDOWN_GROUPS.reduce((lookup, group) => {
@@ -149,6 +144,7 @@ const ITEM_DROPDOWN_GROUP_MAP = ITEM_DROPDOWN_GROUPS.reduce((lookup, group) => {
     });
     return lookup;
 }, {});
+const DEFAULT_PREVIEW_ITEM_NAMESPACE = data.items[0] || "sword";
 
 const ENGLISH_LANGUAGE_ID = "en";
 const LANGUAGE_CACHE_KEY = 11;
@@ -549,7 +545,7 @@ function updateItemSelectorPreview() {
 
     if (!item_namespace) {
         item_preview_icon
-            .attr("src", iconPathForItem("book", false))
+            .attr("src", iconPathForItem(DEFAULT_PREVIEW_ITEM_NAMESPACE, false))
             .attr("alt", "")
             .toggleClass("item-select-icon-unenchanted", true);
         return;
@@ -611,17 +607,7 @@ function buildEnchantList(item_namespace_chosen) {
 
         const enchantment_metadata = enchantments_metadata[enchantment_namespace];
         const item_namespaces = enchantment_metadata.items;
-
-        let allow_enchantment = false;
-        if (item_namespace_chosen === "book") {
-            allow_enchantment = true;
-        } else {
-            item_namespaces.forEach(item_namespace => {
-                if (item_namespace === item_namespace_chosen) {
-                    allow_enchantment = true;
-                }
-            });
-        }
+        const allow_enchantment = item_namespaces.includes(item_namespace_chosen);
 
         if (allow_enchantment) {
             const enchantment_max_level = enchantment_metadata.levelMax;
