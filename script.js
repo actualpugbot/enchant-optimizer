@@ -7,6 +7,7 @@ let total_tries;
 let languageJson;
 let languageId;
 let enchants_list;
+let itemDropdownElements = null;
 
 const ITEM_ICON_VARIANTS = {
     sword: {
@@ -147,6 +148,7 @@ window.onload = function() {
     resetWorker();
 
     buildItemSelection();
+    setupItemCustomDropdown();
     buildEnchantmentSelection();
     setupLanguage();
 };
@@ -174,6 +176,226 @@ function buildItemSelection() {
         const item_listbox = $("<option/>", item_listbox_metadata);
         item_listbox.text(item_namespace).appendTo("select#item");
     });
+
+    rebuildItemCustomDropdown();
+}
+
+function setupItemCustomDropdown() {
+    const native_select = document.getElementById("item");
+    const dropdown_root = document.getElementById("item-custom-select");
+    if (!native_select || !dropdown_root) return;
+
+    dropdown_root.hidden = false;
+    dropdown_root.innerHTML =
+        '<button type="button" class="custom-select-trigger" aria-haspopup="listbox" aria-expanded="false">' +
+            '<span class="custom-select-value"></span>' +
+            '<span class="custom-select-caret" aria-hidden="true"></span>' +
+        "</button>" +
+        '<div class="custom-select-menu" role="listbox" tabindex="-1" hidden></div>';
+
+    native_select.classList.add("selectItem-native-hidden");
+    native_select.tabIndex = -1;
+    native_select.setAttribute("aria-hidden", "true");
+
+    const trigger = dropdown_root.querySelector(".custom-select-trigger");
+    const value_label = dropdown_root.querySelector(".custom-select-value");
+    const menu = dropdown_root.querySelector(".custom-select-menu");
+
+    itemDropdownElements = { native_select, dropdown_root, trigger, value_label, menu };
+
+    trigger.addEventListener("click", function() {
+        const is_open = dropdown_root.classList.contains("is-open");
+        if (is_open) {
+            closeItemCustomDropdown();
+        } else {
+            openItemCustomDropdown();
+        }
+    });
+
+    trigger.addEventListener("keydown", function(event) {
+        const open_keys = ["ArrowDown", "ArrowUp", "Enter", " "];
+        if (!open_keys.includes(event.key)) return;
+        event.preventDefault();
+        openItemCustomDropdown();
+    });
+
+    menu.addEventListener("click", function(event) {
+        const option_button = event.target.closest("button.custom-select-option");
+        if (!option_button) return;
+        selectItemCustomDropdownValue(option_button.dataset.value);
+    });
+
+    menu.addEventListener("keydown", function(event) {
+        const option_buttons = getItemCustomOptionButtons();
+        if (option_buttons.length === 0) return;
+
+        const focused_index = option_buttons.findIndex(button => button === document.activeElement);
+        let target_index = focused_index;
+
+        if (event.key === "ArrowDown") {
+            event.preventDefault();
+            target_index = focused_index < 0 ? 0 : Math.min(option_buttons.length - 1, focused_index + 1);
+            option_buttons[target_index].focus();
+            return;
+        }
+
+        if (event.key === "ArrowUp") {
+            event.preventDefault();
+            target_index = focused_index < 0 ? option_buttons.length - 1 : Math.max(0, focused_index - 1);
+            option_buttons[target_index].focus();
+            return;
+        }
+
+        if (event.key === "Home") {
+            event.preventDefault();
+            option_buttons[0].focus();
+            return;
+        }
+
+        if (event.key === "End") {
+            event.preventDefault();
+            option_buttons[option_buttons.length - 1].focus();
+            return;
+        }
+
+        if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            const selected_button = event.target.closest("button.custom-select-option");
+            if (!selected_button) return;
+            selectItemCustomDropdownValue(selected_button.dataset.value);
+            return;
+        }
+
+        if (event.key === "Escape") {
+            event.preventDefault();
+            closeItemCustomDropdown(true);
+            return;
+        }
+
+        if (event.key === "Tab") {
+            closeItemCustomDropdown(false);
+        }
+    });
+
+    document.addEventListener("mousedown", function(event) {
+        if (!itemDropdownElements) return;
+        const inside_dropdown = dropdown_root.contains(event.target);
+        if (!inside_dropdown) {
+            closeItemCustomDropdown(false);
+        }
+    });
+
+    document.addEventListener("keydown", function(event) {
+        if (event.key !== "Escape") return;
+        closeItemCustomDropdown(false);
+    });
+
+    native_select.addEventListener("change", function() {
+        syncItemCustomDropdownFromNative();
+    });
+
+    rebuildItemCustomDropdown();
+}
+
+function getItemCustomOptionButtons() {
+    if (!itemDropdownElements) return [];
+    return Array.from(itemDropdownElements.menu.querySelectorAll("button.custom-select-option"));
+}
+
+function rebuildItemCustomDropdown() {
+    if (!itemDropdownElements) return;
+
+    const { native_select, menu } = itemDropdownElements;
+    const selected_value = native_select.value;
+
+    menu.innerHTML = "";
+    Array.from(native_select.options).forEach(option => {
+        const hidden_or_placeholder = option.hidden || option.value === "";
+        if (hidden_or_placeholder) return;
+
+        const option_button = document.createElement("button");
+        option_button.type = "button";
+        option_button.className = "custom-select-option";
+        option_button.role = "option";
+        option_button.dataset.value = option.value;
+        option_button.textContent = option.textContent;
+        option_button.setAttribute("aria-selected", option.value === selected_value ? "true" : "false");
+        if (option.value === selected_value) {
+            option_button.classList.add("is-selected");
+        }
+        menu.appendChild(option_button);
+    });
+
+    syncItemCustomDropdownFromNative();
+}
+
+function syncItemCustomDropdownFromNative() {
+    if (!itemDropdownElements) return;
+
+    const { native_select, trigger, value_label, menu } = itemDropdownElements;
+    const selected_option = native_select.options[native_select.selectedIndex];
+    const has_selected_value = !!native_select.value;
+    const placeholder_text = native_select.options.length ? native_select.options[0].textContent : "";
+    const display_text = has_selected_value && selected_option ? selected_option.textContent : placeholder_text;
+
+    value_label.textContent = display_text;
+    trigger.classList.toggle("is-placeholder", !has_selected_value);
+
+    const option_buttons = menu.querySelectorAll("button.custom-select-option");
+    option_buttons.forEach(option_button => {
+        const is_selected = option_button.dataset.value === native_select.value;
+        option_button.classList.toggle("is-selected", is_selected);
+        option_button.setAttribute("aria-selected", is_selected ? "true" : "false");
+    });
+}
+
+function openItemCustomDropdown() {
+    if (!itemDropdownElements) return;
+    const { dropdown_root, trigger, menu, native_select } = itemDropdownElements;
+
+    dropdown_root.classList.add("is-open");
+    trigger.setAttribute("aria-expanded", "true");
+    menu.hidden = false;
+
+    const option_buttons = getItemCustomOptionButtons();
+    if (option_buttons.length === 0) return;
+
+    const selected_index = option_buttons.findIndex(button => button.dataset.value === native_select.value);
+    const focus_index = selected_index >= 0 ? selected_index : 0;
+    const focus_target = option_buttons[focus_index];
+    focus_target.focus();
+    focus_target.scrollIntoView({ block: "nearest" });
+}
+
+function closeItemCustomDropdown(return_focus_to_trigger = false) {
+    if (!itemDropdownElements) return;
+    const { dropdown_root, trigger, menu } = itemDropdownElements;
+
+    const is_open = dropdown_root.classList.contains("is-open");
+    if (!is_open) return;
+
+    dropdown_root.classList.remove("is-open");
+    trigger.setAttribute("aria-expanded", "false");
+    menu.hidden = true;
+
+    if (return_focus_to_trigger) {
+        trigger.focus();
+    }
+}
+
+function selectItemCustomDropdownValue(item_namespace) {
+    if (!itemDropdownElements) return;
+    const { native_select } = itemDropdownElements;
+
+    const option_exists = Array.from(native_select.options).some(option => option.value === item_namespace);
+    if (!option_exists) return;
+
+    if (native_select.value !== item_namespace) {
+        native_select.value = item_namespace;
+        native_select.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+
+    closeItemCustomDropdown(true);
 }
 
 function updateItemSelectorPreview() {
@@ -1099,6 +1321,8 @@ function changeLanguageByJson(languageJson){
         options[i].textContent = languageJson.items[item_namespace];
         i++;
     });
+
+    rebuildItemCustomDropdown();
 
     /* other UI */
     document.getElementById("total-cost-label").textContent = languageJson.total_cost;
