@@ -645,13 +645,6 @@ input:focus-visible {
     letter-spacing: 0.02em;
 }
 
-#timings {
-    margin: 0.45rem 0 0.9rem;
-    color: var(--muted);
-    text-align: center;
-    font-size: 0.78rem;
-}
-
 #solution h3 {
     margin: 0;
     display: none;

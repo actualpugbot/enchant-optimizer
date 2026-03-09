@@ -1,7 +1,6 @@
 const ENCHANTMENT_LIMIT_INCLUSIVE = 10;
 
 let worker;
-let start_time;
 let languageJson;
 let enchants_list;
 let itemDropdownElements = null;
@@ -689,23 +688,6 @@ function buildEnchantmentSelection() {
     });
 }
 
-function displayTime(time_milliseconds) {
-    let time_text;
-
-    if (time_milliseconds < 1) {
-        const time_microseconds = Math.round(time_milliseconds * 1000);
-        time_text = Math.round(time_microseconds) + languageJson.microseconds;
-    } else if (time_milliseconds < 1000) {
-        const time_round = Math.round(time_milliseconds);
-        time_text = pluralize(time_round, 'millisecond');
-    } else {
-        const time_seconds = Math.round(time_milliseconds / 1000);
-        time_text = pluralize(time_seconds, 'second');
-    }
-
-    return time_text;
-}
-
 function displayLevelsText(levels) {
     let level_text;
     level_text = pluralize(levels, 'level');
@@ -964,13 +946,6 @@ function findEnchantments(item) {
     return enchants;
 }
 
-function updateTime(time_milliseconds) {
-    const timing_text = languageJson.completed_in + displayTime(time_milliseconds);
-    $("#timings").text(timing_text);
-    $("#timings").show();
-}
-
-
 function updateCumulativeCost(cumulative_levels, cumulative_xp, minimum_xp = -1) {
     const cost_text = displayLevelsText(cumulative_levels);
     const detailed_cost_text = displayLevelXpText(cumulative_levels, cumulative_xp, minimum_xp);
@@ -1011,12 +986,6 @@ function updateSolutionIdentity(item_namespace) {
 
 function afterFoundOptimalSolution(msg) {
     $("#phone-warn").hide();
-    if (typeof start_time === "number") {
-        const elapsed_time = performance.now() - start_time;
-        updateTime(Math.max(0, elapsed_time));
-    } else {
-        $("#timings").hide();
-    }
     const instructions = msg.instructions;
     const instructions_count = instructions.length;
     enchants_list = msg.enchants
@@ -1319,8 +1288,6 @@ function startCalculating(item_namespace, enchantment_foundation, mode) {
             $("#phone-warn").show();
         }
     }
-
-    start_time = performance.now();
 
     $("#error").hide();
     resetWorker();
