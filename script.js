@@ -8,6 +8,7 @@ let solutionPanelAnimation = null;
 let isSolutionPanelExiting = false;
 let finalPreviewAnimation = null;
 let isFinalPreviewExiting = false;
+let finalPreviewRenderToken = 0;
 
 const ITEM_ICON_VARIANTS = {
     sword: {
@@ -1289,6 +1290,25 @@ function animateFinalPreviewExit(preview_section) {
     finalPreviewAnimation.addEventListener("cancel", cancelExit, { once: true });
 }
 
+function runAfterImageLoad(src, callback) {
+    const image_loader = new Image();
+    let is_complete = false;
+
+    const complete = function() {
+        if (is_complete) return;
+        is_complete = true;
+        callback();
+    };
+
+    image_loader.addEventListener("load", complete, { once: true });
+    image_loader.addEventListener("error", complete, { once: true });
+    image_loader.src = src;
+
+    if (image_loader.complete) {
+        complete();
+    }
+}
+
 
 function afterFoundOptimalSolution(msg) {
     $("#phone-warn").hide();
@@ -1505,6 +1525,7 @@ function updateFinalPreview() {
     if (!languageJson) return;
 
     const preview = $("#final-preview");
+    const render_token = ++finalPreviewRenderToken;
     const item_namespace = retrieveSelectedItem();
 
     if (!item_namespace) {
@@ -1520,12 +1541,7 @@ function updateFinalPreview() {
     }
 
     const item_name = displayItemName(item_namespace, true);
-
-    $("#final-preview-icon")
-        .attr("src", iconPathForItem(item_namespace, has_enchantments))
-        .attr("alt", item_name)
-        .toggleClass("final-preview-icon-enchanted", has_enchantments)
-        .toggleClass("final-preview-icon-unenchanted", !has_enchantments);
+    const icon_src = iconPathForItem(item_namespace, has_enchantments);
 
     const enchantment_list = $("#final-preview-enchants");
     enchantment_list.html("");
@@ -1535,11 +1551,26 @@ function updateFinalPreview() {
         $("<li>").text(enchantment_text).appendTo(enchantment_list);
     });
 
-    const should_animate_entry = !preview.is(":visible") || isFinalPreviewExiting;
-    preview.show();
-    if (should_animate_entry) {
-        animateFinalPreviewEntry(preview);
-    }
+    runAfterImageLoad(icon_src, function() {
+        const is_latest_render = render_token === finalPreviewRenderToken;
+        const selected_item_namespace = retrieveSelectedItem();
+        const has_expected_selection = selected_item_namespace === item_namespace;
+        if (!is_latest_render || !has_expected_selection) {
+            return;
+        }
+
+        $("#final-preview-icon")
+            .attr("src", icon_src)
+            .attr("alt", item_name)
+            .toggleClass("final-preview-icon-enchanted", has_enchantments)
+            .toggleClass("final-preview-icon-unenchanted", !has_enchantments);
+
+        const should_animate_entry = !preview.is(":visible") || isFinalPreviewExiting;
+        preview.show();
+        if (should_animate_entry) {
+            animateFinalPreviewEntry(preview);
+        }
+    });
 }
 
 function runAutoCalculation() {
@@ -1581,6 +1612,12 @@ function solutionHeaderTextFromMode(mode) {
 }
 
 function updateSolutionHeader(mode) {
+    const solution_panel = $("#solution");
+    const solution_is_animating_out = isSolutionPanelExiting && solution_panel.is(":visible");
+    if (solution_is_animating_out) {
+        return;
+    }
+
     const selected_item_namespace = retrieveSelectedItem();
     if (selected_item_namespace) {
         $("#solution-header").text(displayItemName(selected_item_namespace, true));
