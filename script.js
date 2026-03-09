@@ -504,21 +504,17 @@ function displayEnchantmentLine(enchantment_namespace, level_override = undefine
 function extractItemDisplayData(item_obj) {
     let item_namespace;
     let enchantments_obj = [];
-    const enchantment_levels = {};
 
     if (item_obj && typeof item_obj.I === "string") {
         if (languageJson.enchants.hasOwnProperty(item_obj.I)) {
             item_namespace = "book";
             enchantments_obj.push(item_obj.I);
-            if (typeof item_obj.el === "number") {
-                enchantment_levels[item_obj.I] = item_obj.el;
-            }
         } else {
             item_namespace = item_obj.I;
         }
     } else if (item_obj) {
         item_namespace = findItemNamespace(item_obj);
-        enchantments_obj = findEnchantments(item_obj, enchantment_levels);
+        enchantments_obj = findEnchantments(item_obj);
     }
 
     if (typeof item_namespace === "undefined") {
@@ -535,7 +531,6 @@ function extractItemDisplayData(item_obj) {
     return {
         item_namespace: item_namespace,
         enchantments: enchantments_unique,
-        enchantment_levels: enchantment_levels,
     };
 }
 
@@ -576,8 +571,7 @@ function buildStepItemElement(item_obj) {
     if (has_enchantments) {
         const item_lines = $("<div>").addClass("step-item-lines");
         item_data.enchantments.forEach(enchantment_namespace => {
-            const level_override = item_data.enchantment_levels[enchantment_namespace];
-            const enchantment_text = displayEnchantmentLine(enchantment_namespace, level_override);
+            const enchantment_text = displayEnchantmentLine(enchantment_namespace);
             $("<span>").addClass("step-item-line").text(enchantment_text).appendTo(item_lines);
         });
         item_element.append(item_lines);
@@ -603,12 +597,11 @@ function displayInstructionText(instruction) {
     };
 }
 
-function displayEnchantmentsText(enchants, enchantment_levels = {}) {
+function displayEnchantmentsText(enchants) {
     const enchantment_labels = [];
     enchants.forEach(enchantment_namespace => {
         if (!languageJson.enchants.hasOwnProperty(enchantment_namespace)) return;
-        const level_override = enchantment_levels[enchantment_namespace];
-        enchantment_labels.push(displayEnchantmentLine(enchantment_namespace, level_override));
+        enchantment_labels.push(displayEnchantmentLine(enchantment_namespace));
     });
     return enchantment_labels.join(", ");
 }
@@ -621,7 +614,7 @@ function displayItemText(item_obj) {
     const icon_class = has_enchantments ? "icon icon-enchanted" : "icon icon-unenchanted";
     const icon_text = '<img src="' + icon_src + '" class="' + icon_class + '" alt="">';
     const item_name = displayItemName(item_namespace, true);
-    const enchantments_text = displayEnchantmentsText(item_data.enchantments, item_data.enchantment_levels);
+    const enchantments_text = displayEnchantmentsText(item_data.enchantments);
 
     if (!enchantments_text) {
         return icon_text + " " + item_name;
@@ -656,7 +649,7 @@ function findItemNamespace(item) {
     return right_namespace;
 }
 
-function findEnchantments(item, enchantment_levels = {}) {
+function findEnchantments(item) {
     let enchants = [];
     let child_enchants;
 
@@ -664,28 +657,13 @@ function findEnchantments(item, enchantment_levels = {}) {
 
     for (const key in item) {
         if (key === "L" || key === "R") {
-            if (typeof item[key].enchant === "string") {
-                enchants.push(item[key].enchant);
-                if (typeof item[key].el === "number") {
-                    const enchantment_namespace = item[key].enchant;
-                    const prior_level = enchantment_levels[enchantment_namespace] || 0;
-                    enchantment_levels[enchantment_namespace] = Math.max(prior_level, item[key].el);
-                }
-                continue;
-            }
-
             if (!item[key].I) {
-                child_enchants = findEnchantments(item[key], enchantment_levels);
+                child_enchants = findEnchantments(item[key]);
                 child_enchants.forEach(enchant => {
                     enchants.push(enchant);
                 });
             } else {
                 enchants.push(item[key].I);
-                if (typeof item[key].el === "number") {
-                    const enchantment_namespace = item[key].I;
-                    const prior_level = enchantment_levels[enchantment_namespace] || 0;
-                    enchantment_levels[enchantment_namespace] = Math.max(prior_level, item[key].el);
-                }
             }
         }
     }
@@ -730,10 +708,32 @@ function addInstructionDisplay(instruction, step_number) {
     $("#steps").append(step_element);
 }
 
-function updateSolutionIdentity(item_namespace) {
+function updateSolutionIdentity(item_namespace, selected_enchantments) {
     const solution_header = $("#solution-header");
     const item_name = displayItemName(item_namespace, true);
     solution_header.text(item_name);
+
+    const pickaxe_priority = ["silk_touch", "fortune"];
+    let signature_enchant = "";
+
+    if (item_namespace === "pickaxe") {
+        pickaxe_priority.forEach(enchantment_namespace => {
+            if (!signature_enchant && selected_enchantments.includes(enchantment_namespace)) {
+                signature_enchant = enchantment_namespace;
+            }
+        });
+    }
+
+    if (!signature_enchant && selected_enchantments.length === 1) {
+        signature_enchant = selected_enchantments[0];
+    }
+
+    if (signature_enchant) {
+        const signature_text = "[" + displayEnchantmentLine(signature_enchant) + "]";
+        $("#solution-subheader").text(signature_text);
+    } else {
+        $("#solution-subheader").text("");
+    }
 }
 
 
@@ -754,11 +754,13 @@ function afterFoundOptimalSolution(msg) {
 
     if (instructions_count === 0) {
         solution_header.html(languageJson.no_solution_found);
+        $("#solution-subheader").text("");
         steps_header.html("");
         updateCumulativeCost(0, 0);
     } else {
         const item_namespace = retrieveSelectedItem();
-        updateSolutionIdentity(item_namespace);
+        const selected_enchantments = msg.enchants.map(([enchantment_namespace]) => enchantment_namespace);
+        updateSolutionIdentity(item_namespace, selected_enchantments);
 
         steps_header.html(languageJson.steps);
 
@@ -975,12 +977,14 @@ function updateSolutionHeader(mode) {
     const selected_item_namespace = retrieveSelectedItem();
     if (selected_item_namespace) {
         $("#solution-header").text(displayItemName(selected_item_namespace, true));
+        $("#solution-subheader").text("");
         return;
     }
 
     const solution_header_text = solutionHeaderTextFromMode(mode);
     const solution_header = $("#solution-header");
     solution_header.text(solution_header_text);
+    $("#solution-subheader").text("");
 }
 
 function startCalculating(item_namespace, enchantment_foundation, mode) {

@@ -1,7 +1,6 @@
 let ID_LIST = {};
 let ENCHANTMENT2WEIGHT = [];
 const MAXIMUM_MERGE_LEVELS = 39;
-const LEVEL_ONE_ONLY_ENCHANTMENTS = new Set(['wind_burst']);
 let ITEM_NAME;
 let results = {};
 
@@ -35,9 +34,9 @@ function process(item, enchants, mode = 'levels') {
 
     let enchant_objs = []
     enchants.forEach(enchant => { // Creates objects of enchants
-        const enchantment_namespace = enchant[0];
-        const enchantment_level = enchant[1];
-        const e_obj = createEnchantmentBook(enchantment_namespace, enchantment_level);
+        let id = ID_LIST[enchant[0]]
+        let e_obj = new item_obj('book', enchant[1] * ENCHANTMENT2WEIGHT[id], [id])
+        e_obj.c = {I: id, l: e_obj.l, w: e_obj.w}
         enchant_objs.push(e_obj)
     });
     // Finds the most expensive enchant
@@ -100,68 +99,6 @@ function process(item, enchants, mode = 'levels') {
     });
 
     results = {}
-}
-
-
-function createEnchantmentBook(enchantment_namespace, enchantment_level) {
-    const level_one_only = LEVEL_ONE_ONLY_ENCHANTMENTS.has(enchantment_namespace);
-    if (level_one_only && enchantment_level > 1) {
-        return createLevelOneOnlyBook(enchantment_namespace, enchantment_level);
-    }
-    return createDirectEnchantmentBook(enchantment_namespace, enchantment_level);
-}
-
-
-function createDirectEnchantmentBook(enchantment_namespace, enchantment_level) {
-    const id = ID_LIST[enchantment_namespace];
-    const weight = ENCHANTMENT2WEIGHT[id];
-    const book_value = enchantment_level * weight;
-
-    const enchantment_book = new item_obj('book', book_value, [id]);
-    enchantment_book.c = {
-        I: id,
-        l: enchantment_book.l,
-        w: enchantment_book.w,
-        enchant: enchantment_namespace,
-        el: enchantment_level
-    };
-    return enchantment_book;
-}
-
-
-function createLevelOneOnlyBook(enchantment_namespace, enchantment_level) {
-    if (enchantment_level <= 1) {
-        return createDirectEnchantmentBook(enchantment_namespace, 1);
-    }
-
-    const left_book = createLevelOneOnlyBook(enchantment_namespace, enchantment_level - 1);
-    const right_book = createLevelOneOnlyBook(enchantment_namespace, enchantment_level - 1);
-    return combineLevelMatchedBooks(enchantment_namespace, enchantment_level, left_book, right_book);
-}
-
-
-function combineLevelMatchedBooks(enchantment_namespace, result_level, left_book, right_book) {
-    const id = ID_LIST[enchantment_namespace];
-    const weight = ENCHANTMENT2WEIGHT[id];
-    const merge_cost = right_book.l + 2 ** left_book.w - 1 + 2 ** right_book.w - 1;
-
-    if (merge_cost > MAXIMUM_MERGE_LEVELS) {
-        throw new MergeLevelsTooExpensiveError();
-    }
-
-    const merged_book = new item_obj('book', result_level * weight, [id]);
-    merged_book.w = Math.max(left_book.w, right_book.w) + 1;
-    merged_book.x = left_book.x + right_book.x + experience(merge_cost);
-    merged_book.c = {
-        L: left_book.c,
-        R: right_book.c,
-        l: merge_cost,
-        w: merged_book.w,
-        v: merged_book.l,
-        enchant: enchantment_namespace,
-        el: result_level
-    };
-    return merged_book;
 }
 
 
