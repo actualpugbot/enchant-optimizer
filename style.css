@@ -474,6 +474,29 @@ input:focus-visible {
     background-color: #2a3642;
 }
 
+#enchants tr.is-selected td {
+    background-color: #314055;
+}
+
+#enchants tr.is-selected .enchant-name {
+    color: #edf2fb;
+}
+
+#enchants tr.is-conflicting td {
+    background-color: #2e3540;
+}
+
+#enchants tr.is-conflicting .enchant-name {
+    color: #95a3b5;
+}
+
+#enchants tr.is-conflicting button.level-button {
+    border-color: #4f5d6f;
+    background: #323c49;
+    color: #95a3b5;
+    box-shadow: none;
+}
+
 #enchants button.level-button {
     width: 2.05rem;
     height: 2.05rem;

@@ -640,7 +640,10 @@ function buildEnchantList(item_namespace_chosen) {
             const enchantment_name = languageJson.enchants[enchantment_namespace];
 
             const enchantment_row = $("<tr>");
+            enchantment_row.addClass("enchant-row");
             enchantment_row.addClass(group_toggle_color ? "group1" : "group2");
+            enchantment_row.data("namespace", enchantment_namespace);
+
             enchantment_row.append($("<td>").append($("<span>").addClass("enchant-name").text(enchantment_name)));
 
             const enchantment_levels = $("<div>").addClass("level-buttons");
@@ -1116,6 +1119,54 @@ function turnOnButtons(buttons) {
     buttons.removeClass("off");
 }
 
+function selectedEnchantmentNamespacesSet() {
+    const selected_enchantments = new Set();
+    const selected_buttons = $("#enchants button.level-button.on");
+
+    selected_buttons.each(function(_button_index, button) {
+        const selected_button = $(button);
+        const namespace = selected_button.data("namespace") || enchantmentNamespaceFromStylized(selected_button.data("enchant"));
+        if (namespace) {
+            selected_enchantments.add(namespace);
+        }
+    });
+
+    return selected_enchantments;
+}
+
+function rowForEnchantmentNamespace(enchantment_namespace) {
+    return $("#enchants tr.enchant-row").filter(function() {
+        return $(this).data("namespace") === enchantment_namespace;
+    });
+}
+
+function refreshMutualExclusionRowStates() {
+    const selected_namespaces = selectedEnchantmentNamespacesSet();
+    const conflicting_namespaces = new Set();
+    const enchantment_rows = $("#enchants tr.enchant-row");
+
+    enchantment_rows.removeClass("is-selected is-conflicting");
+
+    if (selected_namespaces.size === 0) return;
+
+    selected_namespaces.forEach(selected_namespace => {
+        rowForEnchantmentNamespace(selected_namespace).addClass("is-selected");
+
+        const metadata = data.enchants[selected_namespace];
+        if (!metadata || !Array.isArray(metadata.incompatible)) return;
+
+        metadata.incompatible.forEach(incompatible_namespace => {
+            if (!selected_namespaces.has(incompatible_namespace)) {
+                conflicting_namespaces.add(incompatible_namespace);
+            }
+        });
+    });
+
+    conflicting_namespaces.forEach(conflicting_namespace => {
+        rowForEnchantmentNamespace(conflicting_namespace).addClass("is-conflicting");
+    });
+}
+
 function filterEnchantmentButtons(incompatible_namespaces) {
     const enchantment_buttons = $("#enchants button.level-button");
 
@@ -1240,6 +1291,7 @@ function updateFinalPreview() {
 function runAutoCalculation() {
     if (!languageJson) return;
     updateItemSelectorPreview();
+    refreshMutualExclusionRowStates();
     updateFinalPreview();
 
     const enchantment_foundation = retrieveEnchantmentFoundation();
@@ -1413,7 +1465,6 @@ function changeLanguageByJson(languageJson){
     if (subtitleElement) {
         subtitleElement.textContent = APP_TAGLINE;
     }
-
 
     /* selection */
     const options = document.getElementById("item").getElementsByTagName("option");
