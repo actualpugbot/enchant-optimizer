@@ -5,7 +5,7 @@ let ITEM_NAME;
 let results = {};
 
 
-onmessage = onmessage = event => {
+onmessage = event => {
     if (event.data.msg === 'set_data') {
         const { enchants } = event.data.data;
 
@@ -30,7 +30,6 @@ onmessage = onmessage = event => {
 
 function process(item, enchants, mode = 'levels') {
     ITEM_NAME = item
-    Object.freeze(ITEM_NAME);
 
     let enchant_objs = []
     enchants.forEach(enchant => { // Creates objects of enchants

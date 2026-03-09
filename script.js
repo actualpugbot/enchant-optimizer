@@ -2,10 +2,7 @@ const ENCHANTMENT_LIMIT_INCLUSIVE = 10;
 
 let worker;
 let start_time;
-let total_steps;
-let total_tries;
 let languageJson;
-let languageId;
 let enchants_list;
 let itemDropdownElements = null;
 
@@ -179,9 +176,6 @@ const languages_cache_key = 11;
 const DEFAULT_CHEAPNESS_MODE = "levels";
 const APP_TITLE = "Enchant Optimizer";
 const APP_TAGLINE = "Get the optimal enchant order";
-
-document.documentElement.dataset.theme = 'dark';
-localStorage.setItem("tswitch-theme", 'dark');
 
 window.onload = function() {
 
@@ -509,7 +503,6 @@ function updateItemSelectorPreview() {
         item_preview_icon
             .attr("src", iconPathForItem("book", false))
             .attr("alt", "")
-            .toggleClass("item-select-icon-enchanted", false)
             .toggleClass("item-select-icon-unenchanted", true);
         return;
     }
@@ -519,7 +512,6 @@ function updateItemSelectorPreview() {
     item_preview_icon
         .attr("src", iconPathForItem(item_namespace, false))
         .attr("alt", item_name)
-        .toggleClass("item-select-icon-enchanted", false)
         .toggleClass("item-select-icon-unenchanted", true);
 }
 
@@ -925,32 +917,6 @@ function displayInstructionText(instruction) {
     };
 }
 
-function displayEnchantmentsText(enchants) {
-    const enchantment_labels = [];
-    enchants.forEach(enchantment_namespace => {
-        if (!languageJson.enchants.hasOwnProperty(enchantment_namespace)) return;
-        enchantment_labels.push(displayEnchantmentLine(enchantment_namespace));
-    });
-    return enchantment_labels.join(", ");
-}
-
-function displayItemText(item_obj) {
-    const item_data = extractItemDisplayData(item_obj);
-    const item_namespace = item_data.item_namespace;
-    const has_enchantments = item_data.enchantments.length > 0;
-    const icon_src = iconPathForItem(item_namespace, has_enchantments);
-    const icon_class = has_enchantments ? "icon icon-enchanted" : "icon icon-unenchanted";
-    const icon_text = '<img src="' + icon_src + '" class="' + icon_class + '" alt="">';
-    const item_name = displayItemName(item_namespace, true);
-    const enchantments_text = displayEnchantmentsText(item_data.enchantments);
-
-    if (!enchantments_text) {
-        return icon_text + " " + item_name;
-    }
-
-    return icon_text + " " + item_name + " (" + enchantments_text + ")";
-}
-
 function findItemNamespace(item) {
     if (!item) {
         return undefined;
@@ -1045,7 +1011,12 @@ function updateSolutionIdentity(item_namespace) {
 
 function afterFoundOptimalSolution(msg) {
     $("#phone-warn").hide();
-    $("#timings").hide();
+    if (typeof start_time === "number") {
+        const elapsed_time = performance.now() - start_time;
+        updateTime(Math.max(0, elapsed_time));
+    } else {
+        $("#timings").hide();
+    }
     const instructions = msg.instructions;
     const instructions_count = instructions.length;
     enchants_list = msg.enchants
@@ -1071,7 +1042,7 @@ function afterFoundOptimalSolution(msg) {
         const item = msg.item_obj;
         const cumulative_levels = msg.extra[0];
         const minimum_xp = item.x;
-        const maximum_xp = msg.extra[1]; // UNUSED
+        const maximum_xp = msg.extra[1];
         updateCumulativeCost(cumulative_levels, maximum_xp, minimum_xp);
 
         instructions.forEach((instruction, index) => {
@@ -1349,8 +1320,6 @@ function startCalculating(item_namespace, enchantment_foundation, mode) {
         }
     }
 
-    total_steps = enchantment_foundation.length;
-    total_tries = 0;
     start_time = performance.now();
 
     $("#error").hide();
@@ -1397,16 +1366,15 @@ async function changePageLanguage(language){
         return;
     }
 
-    languageId = language;
-    if (language == 'en'){
+    if (language === 'en'){
       languageJson = await loadJsonLanguage(language).then(languageData => { return languageData});
     }else{
-      var languageJsonEn = await loadJsonLanguage('en').then(languageData => { return languageData});
+      const languageJsonEn = await loadJsonLanguage('en').then(languageData => { return languageData});
       languageJson = await loadJsonLanguage(language).then(languageData => { return languageData});
       languageJson = mergeKeys(languageJson, languageJsonEn);
     }
     if (languageJson){
-        changeLanguageByJson(languageJson);
+        changeLanguageByJson(languageJson, language);
         document.getElementById("language").value = language;
         localStorage.setItem("savedlanguage", language);
         // ^ Save language choice to localstorage
@@ -1414,19 +1382,27 @@ async function changePageLanguage(language){
 }
 
 function mergeKeys(a, b){
-  var o = {};
-  for (var i in b){
-    if (typeof b[i] === 'object'){
-      o[i] = mergeKeys(a.hasOwnProperty(i) ? a[i] : {}, b[i]);
-    }else{
-      if (a.hasOwnProperty(i)){
-        o[i] = a[i]
-      }else{
-        o[i] = b[i];
-      }
-    }
-  }
-  return o;
+    const merged = {};
+    const source = a || {};
+    const fallback = b || {};
+    const keys = new Set(Object.keys(fallback).concat(Object.keys(source)));
+
+    keys.forEach(key => {
+        const source_value = source[key];
+        const fallback_value = fallback[key];
+
+        const source_is_object = source_value && typeof source_value === "object" && !Array.isArray(source_value);
+        const fallback_is_object = fallback_value && typeof fallback_value === "object" && !Array.isArray(fallback_value);
+
+        if (source_is_object || fallback_is_object) {
+            merged[key] = mergeKeys(source_is_object ? source_value : {}, fallback_is_object ? fallback_value : {});
+            return;
+        }
+
+        merged[key] = source.hasOwnProperty(key) ? source_value : fallback_value;
+    });
+
+    return merged;
 }
 
 function loadJsonLanguage(language) {
@@ -1447,12 +1423,12 @@ function loadJsonLanguage(language) {
 }
 
 
-function changeLanguageByJson(languageJson){
+function changeLanguageByJson(languageJson, language_id){
     /* check for duplicate names */
     const map = {};
     for (let i in languageJson.enchants){
         if (map[languageJson.enchants[i]]){
-            console.error("Duplicate string for enchant names (must be unique)", languageId, i, map[languageJson.enchants[i]]);
+            console.error("Duplicate string for enchant names (must be unique)", language_id, i, map[languageJson.enchants[i]]);
         }
         map[languageJson.enchants[i]] = i;
     }

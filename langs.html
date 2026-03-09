@@ -36,7 +36,7 @@ const special_space_handling = {
 	'ja-JP' : true,
 };
 
-var unpack_keys = ['items', 'enchants'];
+var unpack_keys = ['item_groups', 'items', 'enchants'];
 var skip_keys = ['use_russian_plurals'];
 var dicts = {};
 var keys = {};
@@ -148,10 +148,6 @@ async function loadLangs(){
 		tb.append(tr);
 	}
 	
-
-	//add_row(tb, ['a', 'b', 'c'], 1);
-	//add_row(tb, ['a', 'b', 'd']);
-	console.log(keys);
 }
 
 function loadJsonLanguage(language) {
@@ -171,18 +167,6 @@ function loadJsonLanguage(language) {
         return null;
       });
 }
-
-function add_row(tb, cells, header){
-
-	var tr = $('<tr>');
-	for (var i=0; i<cells.length; i++){
-		var td = header ? $('<th>') : $('<td>');
-		td.text(cells[i]);
-		tr.append(td);
-	}
-	tb.append(tr);
-}
-
 
 </script>
 <style>

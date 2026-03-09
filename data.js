@@ -238,7 +238,7 @@ var data = {
             levelMax: "1",
             weight: "4",
             incompatible: [],
-            items: ["helmet", "chestplate", "leggings", "boots", "elytra", "pumpkin", "helmet", "turtle_shell"]
+            items: ["helmet", "chestplate", "leggings", "boots", "elytra", "pumpkin", "turtle_shell"]
         },
         vanishing_curse: {
             levelMax: "1",
@@ -246,7 +246,7 @@ var data = {
             incompatible: [],
             items: ["helmet", "chestplate", "leggings", "boots", "pickaxe", "shovel", "axe", "sword", "hoe", "brush", "fishing_rod",
                 "bow", "shears", "flint_and_steel", "carrot_on_a_stick", "warped_fungus_on_a_stick", "shield", "elytra", "pumpkin",
-                "helmet", "trident", "turtle_shell", "crossbow", "mace", "spear"
+                "trident", "turtle_shell", "crossbow", "mace", "spear"
             ]
         },
         density: {

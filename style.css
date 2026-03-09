@@ -176,10 +176,6 @@ input:focus-visible {
     filter: drop-shadow(0 0 5px rgba(166, 188, 214, 0.32));
 }
 
-.item-select-icon-enchanted {
-    filter: saturate(1.16) contrast(1.08) drop-shadow(0 0 6px rgba(124, 157, 255, 0.65));
-}
-
 .item-select-field {
     position: relative;
     min-width: 0;
@@ -572,12 +568,6 @@ input:focus-visible {
     color: #f7f9ff;
 }
 
-.final-preview-enchants li.final-preview-empty {
-    font-family: var(--font-ui);
-    font-size: 0.76rem;
-    color: var(--muted);
-}
-
 #error,
 #phone-warn {
     margin-top: 0.7rem;
@@ -747,21 +737,6 @@ input:focus-visible {
 
 .step-meta {
     display: none;
-}
-
-.icon {
-    width: 20px;
-    height: 20px;
-    object-fit: contain;
-    image-rendering: pixelated;
-}
-
-.icon-unenchanted {
-    filter: drop-shadow(0 0 3px rgba(166, 188, 214, 0.3));
-}
-
-.icon-enchanted {
-    filter: saturate(1.16) contrast(1.08) drop-shadow(0 0 5px rgba(124, 157, 255, 0.65));
 }
 
 .footer {

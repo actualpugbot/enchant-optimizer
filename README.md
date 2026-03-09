@@ -1,21 +1,27 @@
-# Minecraft Enchantment Ordering Tool
+# Enchant Optimizer
 
-This web-based tool allows you to find the optimal order for combining enchant books in Minecraft to minimize XP cost.
+Static web app for finding the cheapest anvil merge order for Minecraft enchantments.
+It evaluates possible combine trees in a Web Worker and returns the best step-by-step sequence.
 
-You can use it here: https://iamcal.github.io/enchant-order/
+Inspired by: https://github.com/iamcal/enchant-order
 
-The tool works by trying every possible combining sequence and calculating the cost of each.
-For items with many enchantments, this can mean trying a few million combinations.
-The work happens in a background thread (a WebWorker) and the best solution is explained.
+## Run Locally
 
+No build step is required. Serve the repository root as static files, then open `index.html`.
+
+Example:
+
+```bash
+python3 -m http.server 8080
+```
+
+Then visit `http://localhost:8080`.
 
 ## Localization
 
-You can add support for new languages by:
+To add or update a language:
 
-* Adding a new JSON file inside `languages/` (see existing files there for hints)
-* Modifying `script.js` to add the language to the supported list
-* Modifying `langs.html` in the same way
-* Opening `langs.html` in the browser to verify if the required strings are all implemented
-
-Please open a PR with the above changes to have your language merged (or updated).
+- Create or edit `languages/<locale>.json`.
+- Add the locale to the `languages` map in `script.js`.
+- Add the locale to the `languages` map in `langs.html`.
+- Open `langs.html` in a browser to check for missing keys.
