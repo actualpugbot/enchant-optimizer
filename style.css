@@ -237,27 +237,7 @@ input:focus-visible {
 }
 
 .item-select-shell {
-    display: grid;
-    grid-template-columns: 70px minmax(0, 1fr);
-    gap: 0.65rem;
-    align-items: center;
-}
-
-.item-select-preview {
-    width: 70px;
-    height: 70px;
-    border-radius: var(--radius-sm);
-    border: 1px solid #425061;
-    background: radial-gradient(circle at 30% 25%, #3d4b5f, #26313d 74%);
-    display: grid;
-    place-items: center;
-}
-
-.item-select-icon {
-    width: 52px;
-    height: 52px;
-    object-fit: contain;
-    image-rendering: pixelated;
+    display: block;
 }
 
 .item-select-icon-unenchanted {
@@ -282,12 +262,12 @@ input:focus-visible {
 
 .custom-select-trigger {
     width: 100%;
-    min-height: 52px;
+    min-height: 74px;
     border: 1px solid #4a5a6d;
     border-radius: var(--radius-sm);
-    padding: 0.78rem 0.9rem;
+    padding: 0.62rem 0.9rem;
     font-family: var(--font-ui);
-    font-size: 1.04rem;
+    font-size: 1.16rem;
     color: var(--text);
     background: linear-gradient(180deg, #2b3744 0%, #25303b 100%);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
@@ -298,6 +278,45 @@ input:focus-visible {
     text-align: left;
     cursor: pointer;
     transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.12s ease;
+}
+
+.custom-select-trigger-main {
+    display: flex;
+    align-items: center;
+    gap: 0.72rem;
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.custom-select-trigger-icon-wrap {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    border: 0;
+    background: transparent;
+    position: relative;
+    place-items: center;
+    display: grid;
+    flex: 0 0 auto;
+}
+
+.custom-select-trigger-icon-wrap::before {
+    content: "";
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(126, 154, 191, 0.48) 0%, rgba(126, 154, 191, 0) 72%);
+    pointer-events: none;
+}
+
+.custom-select-trigger-icon {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+    image-rendering: pixelated;
+    position: relative;
+    z-index: 1;
 }
 
 .custom-select-trigger:hover {
@@ -405,7 +424,7 @@ input:focus-visible {
     padding: 0.64rem 0.72rem;
     margin: 0;
     font-family: var(--font-ui);
-    font-size: 1rem;
+    font-size: 1.06rem;
     line-height: 1.25;
     color: #edf2fb;
     background: transparent;
@@ -422,8 +441,8 @@ input:focus-visible {
 }
 
 .custom-select-option-icon {
-    width: 22px;
-    height: 22px;
+    width: 26px;
+    height: 26px;
     object-fit: contain;
     image-rendering: pixelated;
     flex: 0 0 auto;
@@ -899,11 +918,6 @@ html[data-theme="light"] .selectItem:hover {
     border-color: #7f9cbc;
 }
 
-html[data-theme="light"] .item-select-preview {
-    border-color: #c1d0df;
-    background: radial-gradient(circle at 30% 25%, #ffffff, #e8f0fa 74%);
-}
-
 html[data-theme="light"] .custom-select-trigger {
     border-color: #b5c8db;
     background: linear-gradient(180deg, #ffffff 0%, #eff5fc 100%);
@@ -912,6 +926,14 @@ html[data-theme="light"] .custom-select-trigger {
 
 html[data-theme="light"] .custom-select-trigger:hover {
     border-color: #7f9cbc;
+}
+
+html[data-theme="light"] .custom-select-trigger-icon-wrap {
+    background: transparent;
+}
+
+html[data-theme="light"] .custom-select-trigger-icon-wrap::before {
+    background: radial-gradient(circle, rgba(126, 154, 191, 0.34) 0%, rgba(126, 154, 191, 0) 72%);
 }
 
 html[data-theme="light"] .custom-select.is-open .custom-select-trigger {
@@ -1114,19 +1136,18 @@ html[data-theme="light"] .step-item-lines {
         padding: 0.7rem;
     }
 
-    .item-select-shell {
-        grid-template-columns: 56px minmax(0, 1fr);
-        gap: 0.5rem;
+    .custom-select-trigger {
+        min-height: 66px;
     }
 
-    .item-select-preview {
-        width: 56px;
-        height: 56px;
+    .custom-select-trigger-icon-wrap {
+        width: 44px;
+        height: 44px;
     }
 
-    .item-select-icon {
-        width: 42px;
-        height: 42px;
+    .custom-select-trigger-icon {
+        width: 36px;
+        height: 36px;
     }
 
     .final-preview-card {

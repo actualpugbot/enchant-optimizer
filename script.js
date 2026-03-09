@@ -266,7 +266,12 @@ function setupItemCustomDropdown() {
     dropdown_root.hidden = false;
     dropdown_root.innerHTML =
         '<button type="button" class="custom-select-trigger" aria-haspopup="listbox" aria-expanded="false">' +
-            '<span class="custom-select-value"></span>' +
+            '<span class="custom-select-trigger-main">' +
+                '<span class="custom-select-trigger-icon-wrap" aria-hidden="true">' +
+                    '<img id="item-custom-select-icon" class="custom-select-trigger-icon item-select-icon-unenchanted" src="' + iconPathForItem(DEFAULT_PREVIEW_ITEM_NAMESPACE, false) + '" alt="">' +
+                '</span>' +
+                '<span class="custom-select-value"></span>' +
+            "</span>" +
             '<span class="custom-select-caret" aria-hidden="true"></span>' +
         "</button>" +
         '<div class="custom-select-menu" role="listbox" tabindex="-1" hidden></div>';
@@ -276,10 +281,11 @@ function setupItemCustomDropdown() {
     native_select.setAttribute("aria-hidden", "true");
 
     const trigger = dropdown_root.querySelector(".custom-select-trigger");
+    const trigger_icon = dropdown_root.querySelector("#item-custom-select-icon");
     const value_label = dropdown_root.querySelector(".custom-select-value");
     const menu = dropdown_root.querySelector(".custom-select-menu");
 
-    itemDropdownElements = { native_select, dropdown_root, trigger, value_label, menu };
+    itemDropdownElements = { native_select, dropdown_root, trigger, trigger_icon, value_label, menu };
 
     trigger.addEventListener("click", function() {
         const is_open = dropdown_root.classList.contains("is-open");
@@ -541,22 +547,19 @@ function selectItemCustomDropdownValue(item_namespace) {
 
 function updateItemSelectorPreview() {
     const item_namespace = retrieveSelectedItem();
-    const item_preview_icon = $("#item-select-icon");
+    const item_preview_icon = itemDropdownElements ? itemDropdownElements.trigger_icon : null;
+    if (!item_preview_icon) return;
 
     if (!item_namespace) {
-        item_preview_icon
-            .attr("src", iconPathForItem(DEFAULT_PREVIEW_ITEM_NAMESPACE, false))
-            .attr("alt", "")
-            .toggleClass("item-select-icon-unenchanted", true);
+        item_preview_icon.src = iconPathForItem(DEFAULT_PREVIEW_ITEM_NAMESPACE, false);
+        item_preview_icon.alt = "";
+        item_preview_icon.classList.toggle("item-select-icon-unenchanted", true);
         return;
     }
 
-    const item_name = displayItemName(item_namespace, true);
-
-    item_preview_icon
-        .attr("src", iconPathForItem(item_namespace, false))
-        .attr("alt", item_name)
-        .toggleClass("item-select-icon-unenchanted", true);
+    item_preview_icon.src = iconPathForItem(item_namespace, false);
+    item_preview_icon.alt = "";
+    item_preview_icon.classList.toggle("item-select-icon-unenchanted", true);
 }
 
 function incompatibleGroupFromNamespace(enchantment_namespace) {
