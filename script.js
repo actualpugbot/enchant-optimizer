@@ -109,6 +109,46 @@ const ITEM_ICON_VARIANTS = {
     },
 };
 
+const ITEM_DROPDOWN_GROUPS = [
+    {
+        id: "armor",
+        label: "Armor",
+        items: ["helmet", "chestplate", "leggings", "boots", "turtle_shell", "elytra"],
+    },
+    {
+        id: "melee",
+        label: "Melee",
+        items: ["sword", "axe", "mace", "spear"],
+    },
+    {
+        id: "ranged",
+        label: "Ranged",
+        items: ["trident", "bow", "crossbow"],
+    },
+    {
+        id: "tools",
+        label: "Tools",
+        items: ["pickaxe", "shovel", "hoe", "shield", "brush"],
+    },
+    {
+        id: "utility",
+        label: "Utility",
+        items: ["fishing_rod", "shears", "flint_and_steel", "carrot_on_a_stick", "warped_fungus_on_a_stick", "pumpkin"],
+    },
+    {
+        id: "books",
+        label: "Books",
+        items: ["book"],
+    },
+];
+
+const ITEM_DROPDOWN_GROUP_MAP = ITEM_DROPDOWN_GROUPS.reduce((lookup, group) => {
+    group.items.forEach(item_namespace => {
+        lookup[item_namespace] = group.id;
+    });
+    return lookup;
+}, {});
+
 const languages = {
     'en'    : 'English',
 
@@ -135,7 +175,7 @@ const languages = {
     'ar'    : 'اَلْعَرَبِيَّةُ',
 };
 
-const languages_cache_key = 10;
+const languages_cache_key = 11;
 const DEFAULT_CHEAPNESS_MODE = "levels";
 const APP_TITLE = "Enchant Optimizer";
 const APP_TAGLINE = "Get the optimal enchant order";
@@ -188,7 +228,10 @@ function setupItemCustomDropdown() {
     dropdown_root.hidden = false;
     dropdown_root.innerHTML =
         '<button type="button" class="custom-select-trigger" aria-haspopup="listbox" aria-expanded="false">' +
-            '<span class="custom-select-value"></span>' +
+            '<span class="custom-select-trigger-main">' +
+                '<img class="custom-select-trigger-icon" alt="" aria-hidden="true" hidden>' +
+                '<span class="custom-select-value"></span>' +
+            "</span>" +
             '<span class="custom-select-caret" aria-hidden="true"></span>' +
         "</button>" +
         '<div class="custom-select-menu" role="listbox" tabindex="-1" hidden></div>';
@@ -198,10 +241,11 @@ function setupItemCustomDropdown() {
     native_select.setAttribute("aria-hidden", "true");
 
     const trigger = dropdown_root.querySelector(".custom-select-trigger");
+    const trigger_icon = dropdown_root.querySelector(".custom-select-trigger-icon");
     const value_label = dropdown_root.querySelector(".custom-select-value");
     const menu = dropdown_root.querySelector(".custom-select-menu");
 
-    itemDropdownElements = { native_select, dropdown_root, trigger, value_label, menu };
+    itemDropdownElements = { native_select, dropdown_root, trigger, trigger_icon, value_label, menu };
 
     trigger.addEventListener("click", function() {
         const is_open = dropdown_root.classList.contains("is-open");
@@ -307,32 +351,95 @@ function rebuildItemCustomDropdown() {
 
     const { native_select, menu } = itemDropdownElements;
     const selected_value = native_select.value;
+    const grouped_options = {};
+    ITEM_DROPDOWN_GROUPS.forEach(group => {
+        grouped_options[group.id] = [];
+    });
+    grouped_options.ungrouped = [];
 
+    const visible_options = Array.from(native_select.options).filter(option => {
+        return !option.hidden && option.value !== "";
+    });
+    visible_options.forEach(option => {
+        const group_id = ITEM_DROPDOWN_GROUP_MAP[option.value] || "ungrouped";
+        grouped_options[group_id].push(option);
+    });
+
+    const menu_fragment = document.createDocumentFragment();
     menu.innerHTML = "";
-    Array.from(native_select.options).forEach(option => {
-        const hidden_or_placeholder = option.hidden || option.value === "";
-        if (hidden_or_placeholder) return;
+    ITEM_DROPDOWN_GROUPS.forEach(group => {
+        if (grouped_options[group.id].length === 0) return;
+        const section = buildItemDropdownSection(group, grouped_options[group.id], selected_value);
+        menu_fragment.appendChild(section);
+    });
+    if (grouped_options.ungrouped.length > 0) {
+        const fallback_group = { id: "ungrouped", label: "Other" };
+        const fallback_section = buildItemDropdownSection(fallback_group, grouped_options.ungrouped, selected_value);
+        menu_fragment.appendChild(fallback_section);
+    }
+    menu.appendChild(menu_fragment);
 
+    syncItemCustomDropdownFromNative();
+}
+
+function buildItemDropdownSection(group, options, selected_value) {
+    const section = document.createElement("div");
+    section.className = "custom-select-section";
+    section.role = "group";
+    section.setAttribute("aria-label", itemDropdownGroupLabel(group.id));
+
+    const group_label = document.createElement("div");
+    group_label.className = "custom-select-group-label";
+    group_label.textContent = itemDropdownGroupLabel(group.id);
+    section.appendChild(group_label);
+
+    options.forEach(option => {
         const option_button = document.createElement("button");
         option_button.type = "button";
         option_button.className = "custom-select-option";
         option_button.role = "option";
         option_button.dataset.value = option.value;
-        option_button.textContent = option.textContent;
-        option_button.setAttribute("aria-selected", option.value === selected_value ? "true" : "false");
-        if (option.value === selected_value) {
+
+        const option_main = document.createElement("span");
+        option_main.className = "custom-select-option-main";
+
+        const option_icon = document.createElement("img");
+        option_icon.className = "custom-select-option-icon";
+        option_icon.src = iconPathForItem(option.value, false);
+        option_icon.alt = "";
+        option_icon.setAttribute("aria-hidden", "true");
+
+        const option_label = document.createElement("span");
+        option_label.className = "custom-select-option-label";
+        option_label.textContent = option.textContent;
+
+        option_main.appendChild(option_icon);
+        option_main.appendChild(option_label);
+        option_button.appendChild(option_main);
+
+        const is_selected = option.value === selected_value;
+        option_button.setAttribute("aria-selected", is_selected ? "true" : "false");
+        if (is_selected) {
             option_button.classList.add("is-selected");
         }
-        menu.appendChild(option_button);
+
+        section.appendChild(option_button);
     });
 
-    syncItemCustomDropdownFromNative();
+    return section;
+}
+
+function itemDropdownGroupLabel(group_id) {
+    const group = ITEM_DROPDOWN_GROUPS.find(entry => entry.id === group_id);
+    const fallback = group ? group.label : "Other";
+    if (!languageJson || !languageJson.item_groups) return fallback;
+    return languageJson.item_groups[group_id] || fallback;
 }
 
 function syncItemCustomDropdownFromNative() {
     if (!itemDropdownElements) return;
 
-    const { native_select, trigger, value_label, menu } = itemDropdownElements;
+    const { native_select, trigger, trigger_icon, value_label, menu } = itemDropdownElements;
     const selected_option = native_select.options[native_select.selectedIndex];
     const has_selected_value = !!native_select.value;
     const placeholder_text = native_select.options.length ? native_select.options[0].textContent : "";
@@ -340,6 +447,13 @@ function syncItemCustomDropdownFromNative() {
 
     value_label.textContent = display_text;
     trigger.classList.toggle("is-placeholder", !has_selected_value);
+    if (has_selected_value && trigger_icon) {
+        trigger_icon.src = iconPathForItem(native_select.value, false);
+        trigger_icon.hidden = false;
+    } else if (trigger_icon) {
+        trigger_icon.hidden = true;
+        trigger_icon.removeAttribute("src");
+    }
 
     const option_buttons = menu.querySelectorAll("button.custom-select-option");
     option_buttons.forEach(option_button => {
