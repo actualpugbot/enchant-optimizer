@@ -85,13 +85,7 @@ a:hover {
     font-size: 0.92rem;
 }
 
-.top-container {
-    min-width: 210px;
-    padding: 0;
-}
-
-.selectItem,
-.selectLanguage {
+.selectItem {
     width: 100%;
     appearance: none;
     border: 1px solid var(--line);
@@ -108,19 +102,16 @@ a:hover {
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.selectItem option,
-.selectLanguage option {
+.selectItem option {
     color: var(--text);
     background-color: #2a3644;
 }
 
-.selectItem:hover,
-.selectLanguage:hover {
+.selectItem:hover {
     border-color: #4f5f72;
 }
 
 .selectItem:focus,
-.selectLanguage:focus,
 button:focus-visible,
 input:focus-visible {
     outline: 2px solid var(--accent);
@@ -796,10 +787,6 @@ input:focus-visible {
     .app-header {
         flex-direction: column;
         align-items: flex-start;
-    }
-
-    .top-container {
-        width: 100%;
     }
 
     #left,

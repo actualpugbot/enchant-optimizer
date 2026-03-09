@@ -17,11 +17,6 @@ python3 -m http.server 8080
 
 Then visit `http://localhost:8080`.
 
-## Localization
+## Language
 
-To add or update a language:
-
-- Create or edit `languages/<locale>.json`.
-- Add the locale to the `languages` map in `script.js`.
-- Add the locale to the `languages` map in `langs.html`.
-- Open `langs.html` in a browser to check for missing keys.
+The app is English-only. UI strings are sourced from `languages/en.json`.

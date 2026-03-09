@@ -150,33 +150,8 @@ const ITEM_DROPDOWN_GROUP_MAP = ITEM_DROPDOWN_GROUPS.reduce((lookup, group) => {
     return lookup;
 }, {});
 
-const languages = {
-    'en'    : 'English',
-
-    // in alphabetical order
-    'de'    : 'Deutsch',
-    'es-ES' : 'Español',
-    'fr-FR' : 'Français',
-    'it-IT' : 'Italiano',
-    'id'    : 'Indonesia',
-    'hu-HU' : 'Magyar',
-    'nl'    : 'Nederlands',
-    'pl-PL' : 'Polski',
-    'pt-BR' : 'Português',
-    'vi-VN' : 'Tiếng Việt',
-    'tr-TR' : 'Türkçe',
-    'be-BY' : 'Беларуская',
-    'ru-RU' : 'Русский',
-    'ua-UA' : 'Українська',
-    'th-TH' : 'ภาษาไทย',
-    'zh-CN' : '简体中文',
-    'zh-TW' : '繁體中文',
-    'ja-JP' : '日本語',
-    'ko-KR' : '한국어',
-    'ar'    : 'اَلْعَرَبِيَّةُ',
-};
-
-const languages_cache_key = 11;
+const ENGLISH_LANGUAGE_ID = "en";
+const LANGUAGE_CACHE_KEY = 11;
 const DEFAULT_CHEAPNESS_MODE = "levels";
 const APP_TITLE = "Enchant Optimizer";
 const APP_TAGLINE = "Get the optimal enchant order";
@@ -188,7 +163,7 @@ window.onload = function() {
     buildItemSelection();
     setupItemCustomDropdown();
     buildEnchantmentSelection();
-    setupLanguage();
+    setupEnglishLanguage();
 };
 
 function resetWorker() {
@@ -1651,80 +1626,15 @@ function startCalculating(item_namespace, enchantment_foundation, mode) {
     });
 }
 
-function languageChangeListener(){
-    const selectLanguage = document.getElementById('language');
-    selectLanguage.addEventListener('change', function() {
-        const selectedValue = selectLanguage.value;
-        changePageLanguage(selectedValue);
-    });
-}
-
-async function setupLanguage(){
-    const language_select = $("#language");
-    language_select.empty();
-    for (const i in languages){
-        $("<option/>", { 'value': i, 'selected': i === 'en' }).text(languages[i]).appendTo(language_select);
+async function setupEnglishLanguage() {
+    languageJson = await loadJsonLanguage(ENGLISH_LANGUAGE_ID);
+    if (languageJson) {
+        applyLanguageJson(languageJson);
     }
-    defineBrowserLanguage();
-    languageChangeListener();
-}
-
-function defineBrowserLanguage(){
-    const saved_language = localStorage.getItem("savedlanguage");
-    if (saved_language && languages[saved_language]) {
-        changePageLanguage(saved_language);
-    } else {
-        changePageLanguage('en');
-    }
-}
-
-async function changePageLanguage(language){
-    if (!languages[language]){
-        console.error("Trying to switch to unknown language:", language);
-        return;
-    }
-
-    if (language === 'en'){
-      languageJson = await loadJsonLanguage(language).then(languageData => { return languageData});
-    }else{
-      const languageJsonEn = await loadJsonLanguage('en').then(languageData => { return languageData});
-      languageJson = await loadJsonLanguage(language).then(languageData => { return languageData});
-      languageJson = mergeKeys(languageJson, languageJsonEn);
-    }
-    if (languageJson){
-        changeLanguageByJson(languageJson, language);
-        document.getElementById("language").value = language;
-        localStorage.setItem("savedlanguage", language);
-        // ^ Save language choice to localstorage
-    }
-}
-
-function mergeKeys(a, b){
-    const merged = {};
-    const source = a || {};
-    const fallback = b || {};
-    const keys = new Set(Object.keys(fallback).concat(Object.keys(source)));
-
-    keys.forEach(key => {
-        const source_value = source[key];
-        const fallback_value = fallback[key];
-
-        const source_is_object = source_value && typeof source_value === "object" && !Array.isArray(source_value);
-        const fallback_is_object = fallback_value && typeof fallback_value === "object" && !Array.isArray(fallback_value);
-
-        if (source_is_object || fallback_is_object) {
-            merged[key] = mergeKeys(source_is_object ? source_value : {}, fallback_is_object ? fallback_value : {});
-            return;
-        }
-
-        merged[key] = source.hasOwnProperty(key) ? source_value : fallback_value;
-    });
-
-    return merged;
 }
 
 function loadJsonLanguage(language) {
-    return fetch('languages/'+language+'.json?'+languages_cache_key)
+    return fetch('languages/'+language+'.json?'+LANGUAGE_CACHE_KEY)
       .then(response => {
         if (!response.ok) {
           throw new Error('Can\'t load language file');
@@ -1741,16 +1651,7 @@ function loadJsonLanguage(language) {
 }
 
 
-function changeLanguageByJson(languageJson, language_id){
-    /* check for duplicate names */
-    const map = {};
-    for (let i in languageJson.enchants){
-        if (map[languageJson.enchants[i]]){
-            console.error("Duplicate string for enchant names (must be unique)", language_id, i, map[languageJson.enchants[i]]);
-        }
-        map[languageJson.enchants[i]] = i;
-    }
-
+function applyLanguageJson(languageJson){
     const h1Element = document.getElementsByTagName('h1')[0];
     h1Element.textContent = APP_TITLE;
     document.title = APP_TITLE;
