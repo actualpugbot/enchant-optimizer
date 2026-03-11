@@ -1,7 +1,6 @@
 const ENCHANTMENT_LIMIT_INCLUSIVE = 10;
 
 let worker;
-let languageJson;
 let enchants_list;
 let itemDropdownElements = null;
 let solutionPanelAnimation = null;
@@ -154,8 +153,110 @@ const ITEM_SELECTOR_IDLE_TRANSITION_MS = 460;
 const ITEM_SELECTOR_IDLE_TRANSITION_DISTANCE_PX = 58;
 const ITEM_SELECTOR_IDLE_TRANSITION_EASING = "cubic-bezier(0.42, 0, 0.22, 1)";
 
-const ENGLISH_LANGUAGE_ID = "en";
-const LANGUAGE_CACHE_KEY = 11;
+const ENGLISH_STRINGS = {
+    choose_an_item_to_enchant: "Choose an item to enchant",
+    item_groups: {
+        armor: "Armor",
+        melee: "Melee",
+        ranged: "Ranged",
+        tools: "Tools",
+        utility: "Utility",
+        ungrouped: "Other",
+    },
+    optimal_solution_cumulative_levels: "Optimal solution found (by lowest cumulative levels)!",
+    optimal_solution_prior_work: "Optimal solution found (by lowest prior work)!",
+    total_cost: "Total cost: ",
+    completed_in: "Completed in ",
+    microseconds: " microseconds",
+    millisecond: " millisecond",
+    millisecond_s: " milliseconds",
+    second: " second",
+    second_s: " seconds",
+    level: " level",
+    level_s: " levels",
+    xp: " xp",
+    steps: " Steps:",
+    cost: "Cost: ",
+    prior_work_penalty: "Prior Work Penalty: ",
+    no_solution_found: "No solution found!",
+    too_many_enchantments: "Too many enchantments!",
+    more_than: " More than ",
+    enchantments_are_not_recommended: " enchantments are not recommended.",
+    please_select_enchantments: " Please deselect some enchantments or check the override near the bottom of the page.",
+    items: {
+        helmet: "Helmet",
+        chestplate: "Chestplate",
+        leggings: "Leggings",
+        boots: "Boots",
+        turtle_shell: "Turtle Shell",
+        elytra: "Elytra",
+        sword: "Sword",
+        axe: "Axe",
+        mace: "Mace",
+        spear: "Spear",
+        trident: "Trident",
+        bow: "Bow",
+        crossbow: "Crossbow",
+        pickaxe: "Pickaxe",
+        shovel: "Shovel",
+        hoe: "Hoe",
+        shield: "Shield",
+        brush: "Brush",
+        fishing_rod: "Fishing Rod",
+        shears: "Shears",
+        flint_and_steel: "Flint and Steel",
+        carrot_on_a_stick: "Carrot on a Stick",
+        warped_fungus_on_a_stick: "Warped Fungus on a Stick",
+        pumpkin: "Pumpkin",
+        book: "Book",
+    },
+    enchants: {
+        protection: "Protection",
+        aqua_affinity: "Aqua Affinity",
+        bane_of_arthropods: "Bane of Arthropods",
+        blast_protection: "Blast Protection",
+        channeling: "Channeling",
+        depth_strider: "Depth Strider",
+        efficiency: "Efficiency",
+        feather_falling: "Feather Falling",
+        fire_aspect: "Fire Aspect",
+        fire_protection: "Fire Protection",
+        flame: "Flame",
+        fortune: "Fortune",
+        frost_walker: "Frost Walker",
+        impaling: "Impaling",
+        infinity: "Infinity",
+        knockback: "Knockback",
+        looting: "Looting",
+        loyalty: "Loyalty",
+        luck_of_the_sea: "Luck of the Sea",
+        lunge: "Lunge",
+        lure: "Lure",
+        mending: "Mending",
+        multishot: "Multishot",
+        piercing: "Piercing",
+        power: "Power",
+        projectile_protection: "Projectile Protection",
+        punch: "Punch",
+        quick_charge: "Quick Charge",
+        respiration: "Respiration",
+        riptide: "Riptide",
+        sharpness: "Sharpness",
+        silk_touch: "Silk Touch",
+        smite: "Smite",
+        soul_speed: "Soul Speed",
+        sweeping: "Sweeping",
+        swift_sneak: "Swift Sneak",
+        thorns: "Thorns",
+        unbreaking: "Unbreaking",
+        binding_curse: "Curse of Binding",
+        vanishing_curse: "Curse of Vanishing",
+        density: "Density",
+        breach: "Breach",
+        wind_burst: "Wind Burst",
+    },
+};
+const UI_STRINGS = ENGLISH_STRINGS;
 const DEFAULT_CHEAPNESS_MODE = "levels";
 const APP_TITLE = "Enchant Optimizer";
 const APP_TAGLINE = "Get the optimal enchant order";
@@ -173,7 +274,7 @@ window.onload = function() {
     buildItemSelection();
     setupItemCustomDropdown();
     buildEnchantmentSelection();
-    setupEnglishLanguage();
+    applyUiStrings();
 };
 
 function normalizeTheme(theme) {
@@ -497,8 +598,7 @@ function buildItemDropdownSection(group, options, selected_value) {
 function itemDropdownGroupLabel(group_id) {
     const group = ITEM_DROPDOWN_GROUPS.find(entry => entry.id === group_id);
     const fallback = group ? group.label : "Other";
-    if (!languageJson || !languageJson.item_groups) return fallback;
-    return languageJson.item_groups[group_id] || fallback;
+    return UI_STRINGS.item_groups[group_id] || fallback;
 }
 
 function syncItemCustomDropdownFromNative() {
@@ -922,7 +1022,7 @@ function buildEnchantList(item_namespace_chosen) {
         enchantment_group.forEach(enchantment_namespace => {
             const enchantment_metadata = enchantments_metadata[enchantment_namespace];
             const enchantment_max_level = enchantment_metadata.levelMax;
-            const enchantment_name = languageJson.enchants[enchantment_namespace];
+            const enchantment_name = UI_STRINGS.enchants[enchantment_namespace];
 
             const enchantment_row = $("<tr>");
             enchantment_row.addClass("enchant-row");
@@ -937,7 +1037,6 @@ function buildEnchantList(item_namespace_chosen) {
                 if (enchantment_max_level >= enchantment_level) {
                     const enchantment_button_data = {
                         level: enchantment_level,
-                        enchant: enchantment_name,
                         namespace: enchantment_namespace,
                     };
                     const enchantment_button = $("<button>", { type: "button" });
@@ -989,21 +1088,10 @@ function displayLevelsText(levels) {
 }
 
 function pluralize(num, key_root) {
-
-    if (languageJson.use_russian_plurals) {
-      if ((num % 10 === 1) && (num < 10 || num > 15)) {
-        return String(num) + languageJson[key_root];
-      } else if ((num % 10 === 2 || num % 10 === 3 || num % 10 === 4) && (num < 10 || num > 15)) {
-        return String(num) + languageJson[key_root + '_low'];
-      } else {
-        return String(num) + languageJson[key_root + '_high'];
-      }
-    }
-
     if (num === 1) {
-      return String(num) + languageJson[key_root];
+      return String(num) + UI_STRINGS[key_root];
     } else {
-      return String(num) + languageJson[key_root + '_s'];
+      return String(num) + UI_STRINGS[key_root + '_s'];
     }
 }
 
@@ -1012,7 +1100,7 @@ function displayXpText(xp, minimum_xp = -1) {
     if (minimum_xp >= 0) {
         xp_text += commaify(minimum_xp) + "-";
     }
-    xp_text += commaify(xp) + languageJson.xp;
+    xp_text += commaify(xp) + UI_STRINGS.xp;
     return xp_text;
 }
 
@@ -1042,7 +1130,7 @@ function toTitleCase(text) {
 }
 
 function displayItemName(item_namespace, force_title_case = false) {
-    const items_metadata = languageJson && languageJson.items ? languageJson.items : {};
+    const items_metadata = UI_STRINGS.items;
     const localized_item_name = items_metadata[item_namespace];
     const item_name = localized_item_name || item_namespace;
     return force_title_case ? toTitleCase(item_name) : item_name;
@@ -1085,7 +1173,7 @@ function enchantmentLevelFromNamespace(enchantment_namespace) {
 }
 
 function displayEnchantmentLine(enchantment_namespace, level_override = undefined) {
-    const enchantment_name = languageJson.enchants[enchantment_namespace] || enchantment_namespace;
+    const enchantment_name = UI_STRINGS.enchants[enchantment_namespace] || enchantment_namespace;
     const enchantment_data = data.enchants[enchantment_namespace];
     if (!enchantment_data || enchantment_data.levelMax <= 1) {
         return enchantment_name;
@@ -1102,7 +1190,7 @@ function extractItemDisplayData(item_obj) {
     let enchantments_obj = [];
 
     if (item_obj && typeof item_obj.I === "string") {
-        if (languageJson.enchants.hasOwnProperty(item_obj.I)) {
+        if (UI_STRINGS.enchants.hasOwnProperty(item_obj.I)) {
             item_namespace = "book";
             enchantments_obj.push(item_obj.I);
         } else {
@@ -1122,7 +1210,7 @@ function extractItemDisplayData(item_obj) {
     }
 
     const enchantments_unique = [...new Set(enchantments_obj)].filter(enchantment_namespace => {
-        return languageJson.enchants.hasOwnProperty(enchantment_namespace);
+        return UI_STRINGS.enchants.hasOwnProperty(enchantment_namespace);
     });
     return {
         item_namespace: item_namespace,
@@ -1183,8 +1271,8 @@ function displayInstructionText(instruction) {
     const xp = instruction[3];
     const work = instruction[4];
 
-    const cost_text = languageJson.cost + displayLevelXpText(levels, xp);
-    const prior_work_text = languageJson.prior_work_penalty + displayLevelsText(work);
+    const cost_text = UI_STRINGS.cost + displayLevelXpText(levels, xp);
+    const prior_work_text = UI_STRINGS.prior_work_penalty + displayLevelsText(work);
 
     return {
         left: buildStepItemElement(left_item_obj),
@@ -1199,7 +1287,7 @@ function findItemNamespace(item) {
     }
 
     if (typeof item.I === "string") {
-        return languageJson.enchants.hasOwnProperty(item.I) ? "book" : item.I;
+        return UI_STRINGS.enchants.hasOwnProperty(item.I) ? "book" : item.I;
     }
 
     const left_namespace = findItemNamespace(item.L);
@@ -1618,14 +1706,14 @@ function afterFoundOptimalSolution(msg) {
     }
 
     if (instructions_count === 0) {
-        solution_header.html(languageJson.no_solution_found);
+        solution_header.html(UI_STRINGS.no_solution_found);
         steps_header.html("");
         updateCumulativeCost(0, 0);
     } else {
         const item_namespace = retrieveSelectedItem();
         updateSolutionIdentity(item_namespace);
 
-        steps_header.html(languageJson.steps);
+        steps_header.html(UI_STRINGS.steps);
 
         const item = msg.item_obj;
         const cumulative_levels = msg.extra[0];
@@ -1637,19 +1725,6 @@ function afterFoundOptimalSolution(msg) {
             addInstructionDisplay(instruction, index + 1);
         });
     }
-}
-
-function enchantmentNamespaceFromStylized(enchantment_name) {
-    const enchantments_metadata = data.enchants;
-    const enchantment_namespaces = Object.keys(enchantments_metadata);
-
-    let namespace_match = "";
-    enchantment_namespaces.forEach(enchantment_namespace => {
-        const enchantment_name_check = languageJson.enchants[enchantment_namespace];
-        if (enchantment_name_check === enchantment_name) namespace_match = enchantment_namespace;
-    });
-
-    return namespace_match;
 }
 
 function buttonMatchesNamespace(button, enchantment_namespace) {
@@ -1684,7 +1759,7 @@ function selectedEnchantmentNamespacesSet() {
 
     selected_buttons.each(function(_button_index, button) {
         const selected_button = $(button);
-        const namespace = selected_button.data("namespace") || enchantmentNamespaceFromStylized(selected_button.data("enchant"));
+        const namespace = selected_button.data("namespace");
         if (namespace) {
             selected_enchantments.add(namespace);
         }
@@ -1745,7 +1820,7 @@ function updateLevelButtonForOnState(level_button) {
 
     turnOnButtons(level_button);
 
-    const enchantment_namespace = button_data.namespace || enchantmentNamespaceFromStylized(button_data.enchant);
+    const enchantment_namespace = button_data.namespace;
     const enchantment_level = button_data.level;
 
     const matching_buttons = enchantment_buttons.filter(function () {
@@ -1777,9 +1852,9 @@ function levelButtonClicked(button_clicked) {
 
         if (is_too_many) {
             let alert_text = "";
-            alert_text += languageJson.too_many_enchantments;
-            alert_text += languageJson.more_than + ENCHANTMENT_LIMIT_INCLUSIVE + languageJson.enchantments_are_not_recommended;
-            alert_text += languageJson.please_select_enchantments;
+            alert_text += UI_STRINGS.too_many_enchantments;
+            alert_text += UI_STRINGS.more_than + ENCHANTMENT_LIMIT_INCLUSIVE + UI_STRINGS.enchantments_are_not_recommended;
+            alert_text += UI_STRINGS.please_select_enchantments;
             alert(alert_text);
         } else {
             updateLevelButtonForOnState(button_clicked);
@@ -1797,9 +1872,8 @@ function retrieveEnchantmentFoundation() {
     const buttons_on = $("#enchants button.level-button.on");
 
     buttons_on.each(function(button_index, button) {
-        const enchantment_name = $(button).data("enchant");
         const enchantment_level = $(button).data("level");
-        const enchantment_namespace = $(button).data("namespace") || enchantmentNamespaceFromStylized(enchantment_name);
+        const enchantment_namespace = $(button).data("namespace");
         enchantment_foundation.push([enchantment_namespace, enchantment_level]);
     });
 
@@ -1811,8 +1885,6 @@ function retrieveSelectedItem() {
 }
 
 function updateFinalPreview() {
-    if (!languageJson) return;
-
     const preview = $("#final-preview");
     const item_namespace = retrieveSelectedItem();
 
@@ -1853,7 +1925,6 @@ function updateFinalPreview() {
 }
 
 function runAutoCalculation() {
-    if (!languageJson) return;
     updateItemSelectorPreview();
     refreshMutualExclusionRowStates();
     updateFinalPreview();
@@ -1883,9 +1954,9 @@ function calculate() {
 function solutionHeaderTextFromMode(mode) {
     let solution_header_text;
     if (mode === "levels") {
-        solution_header_text = languageJson.optimal_solution_cumulative_levels;
+        solution_header_text = UI_STRINGS.optimal_solution_cumulative_levels;
     } else if (mode === "prior_work") {
-        solution_header_text = languageJson.optimal_solution_prior_work;
+        solution_header_text = UI_STRINGS.optimal_solution_prior_work;
     }
     return solution_header_text;
 }
@@ -1930,32 +2001,7 @@ function startCalculating(item_namespace, enchantment_foundation, mode) {
     });
 }
 
-async function setupEnglishLanguage() {
-    languageJson = await loadJsonLanguage(ENGLISH_LANGUAGE_ID);
-    if (languageJson) {
-        applyLanguageJson(languageJson);
-    }
-}
-
-function loadJsonLanguage(language) {
-    return fetch('languages/'+language+'.json?'+LANGUAGE_CACHE_KEY)
-      .then(response => {
-        if (!response.ok) {
-          throw new Error('Can\'t load language file');
-        }
-        return response.json();
-      })
-      .then(data => {
-        return data;
-      })
-      .catch(error => {
-        console.error('Language file error:', error);
-        return null;
-      });
-}
-
-
-function applyLanguageJson(languageJson){
+function applyUiStrings() {
     const h1Element = document.getElementsByTagName('h1')[0];
     h1Element.textContent = APP_TITLE;
     document.title = APP_TITLE;
@@ -1969,16 +2015,16 @@ function applyLanguageJson(languageJson){
     const options = document.getElementById("item").getElementsByTagName("option");
     let i = 1;
 
-    options[0].textContent = languageJson.choose_an_item_to_enchant;
+    options[0].textContent = UI_STRINGS.choose_an_item_to_enchant;
     data.items.forEach(item_namespace => {
-        options[i].textContent = languageJson.items[item_namespace];
+        options[i].textContent = UI_STRINGS.items[item_namespace];
         i++;
     });
 
     rebuildItemCustomDropdown();
 
     /* other UI */
-    document.getElementById("total-cost-label").textContent = languageJson.total_cost;
+    document.getElementById("total-cost-label").textContent = UI_STRINGS.total_cost;
 
     $("select#item").change();
     $("#solution").hide();

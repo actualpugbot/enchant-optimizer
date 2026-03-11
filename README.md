@@ -16,7 +16,3 @@ python3 -m http.server 8080
 ```
 
 Then visit `http://localhost:8080`.
-
-## Language
-
-The app is English-only. UI strings are sourced from `languages/en.json`.
