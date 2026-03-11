@@ -223,10 +223,24 @@ const PUGS_CHOICE_ENCHANTMENTS = {
         ["unbreaking", 3],
     ],
     pickaxe: [
-        ["efficiency", 5],
-        ["silk_touch", 1],
-        ["mending", 1],
-        ["unbreaking", 3],
+        {
+            unique_enchantment: "silk_touch",
+            enchantments: [
+                ["efficiency", 5],
+                ["silk_touch", 1],
+                ["mending", 1],
+                ["unbreaking", 3],
+            ],
+        },
+        {
+            unique_enchantment: "fortune",
+            enchantments: [
+                ["efficiency", 5],
+                ["fortune", 3],
+                ["mending", 1],
+                ["unbreaking", 3],
+            ],
+        },
     ],
     shovel: [
         ["efficiency", 5],
@@ -298,6 +312,7 @@ const ENGLISH_STRINGS = {
     more_than: " More than ",
     enchantments_are_not_recommended: " enchantments are not recommended.",
     please_select_enchantments: " Please deselect some enchantments or check the override near the bottom of the page.",
+    pugs_choice: "Pug's Choice",
     apply_pugs_choice: "Apply Pug's Choice enchantments",
     pugs_choice_not_available: "Pug's Choice enchantments are not available for this item",
     items: {
@@ -1177,24 +1192,167 @@ function buildEnchantList(item_namespace_chosen) {
     runAutoCalculation();
 }
 
-function pugsChoiceEnchantmentsForItem(item_namespace) {
-    if (!item_namespace) return null;
-    return PUGS_CHOICE_ENCHANTMENTS[item_namespace] || null;
+function isPugsChoiceEnchantmentPair(entry) {
+    if (!Array.isArray(entry)) return false;
+    if (entry.length !== 2) return false;
+    return typeof entry[0] === "string" && typeof entry[1] === "number";
+}
+
+function pugsChoiceOptionsForItem(item_namespace) {
+    if (!item_namespace) return [];
+
+    const pugs_choice_item_data = PUGS_CHOICE_ENCHANTMENTS[item_namespace];
+    if (!Array.isArray(pugs_choice_item_data) || pugs_choice_item_data.length === 0) {
+        return [];
+    }
+
+    const is_single_legacy_enchantment_list = pugs_choice_item_data.every(isPugsChoiceEnchantmentPair);
+    if (is_single_legacy_enchantment_list) {
+        return [{
+            enchantments: pugs_choice_item_data,
+            unique_enchantment_namespace: null,
+        }];
+    }
+
+    return pugs_choice_item_data.map(option => {
+        if (!option || !Array.isArray(option.enchantments)) return null;
+        const enchantments = option.enchantments.filter(isPugsChoiceEnchantmentPair);
+        if (enchantments.length === 0) return null;
+        return {
+            enchantments: enchantments,
+            unique_enchantment_namespace: typeof option.unique_enchantment === "string"
+                ? option.unique_enchantment
+                : null,
+        };
+    }).filter(option => option !== null);
+}
+
+function pugsChoiceButtonLabelForOption(pugs_choice_options, option_index) {
+    if (!Array.isArray(pugs_choice_options) || pugs_choice_options.length === 0) {
+        return UI_STRINGS.pugs_choice;
+    }
+
+    if (pugs_choice_options.length === 1) {
+        return UI_STRINGS.pugs_choice;
+    }
+
+    const selected_option = pugs_choice_options[option_index];
+    if (!selected_option) return UI_STRINGS.pugs_choice;
+
+    const unique_enchantment_namespace = selected_option.unique_enchantment_namespace;
+    if (!unique_enchantment_namespace) {
+        return UI_STRINGS.pugs_choice;
+    }
+
+    const unique_enchantment_name = UI_STRINGS.enchants[unique_enchantment_namespace] || unique_enchantment_namespace;
+    return UI_STRINGS.pugs_choice + ": " + unique_enchantment_name;
+}
+
+function pugsChoiceOptionTagText(pugs_choice_option) {
+    const unique_enchantment_namespace = pugs_choice_option.unique_enchantment_namespace;
+    if (!unique_enchantment_namespace) return null;
+    return UI_STRINGS.enchants[unique_enchantment_namespace] || unique_enchantment_namespace;
+}
+
+function buildPugsChoiceButton(pugs_choice_options, pugs_choice_option, option_index) {
+    const label = pugsChoiceButtonLabelForOption(pugs_choice_options, option_index);
+
+    const button = $("<button>");
+    button.attr("type", "button");
+    button.addClass("pugs-choice-button");
+    button.attr("title", label);
+    button.attr("aria-label", label);
+    button.attr("aria-pressed", "false");
+    button.data("option-index", option_index);
+
+    $("<span>")
+        .addClass("pugs-choice-star")
+        .attr("aria-hidden", "true")
+        .html("&#9733;")
+        .appendTo(button);
+
+    if (pugs_choice_options.length > 1) {
+        const tag_text = pugsChoiceOptionTagText(pugs_choice_option);
+        if (tag_text) {
+            $("<span>")
+                .addClass("pugs-choice-tag")
+                .attr("aria-hidden", "true")
+                .text(tag_text)
+                .appendTo(button);
+        }
+    }
+
+    return button;
+}
+
+function setPugsChoiceButtonSelectedState(option_index = null) {
+    const pugs_choice_buttons = $("#pugs-choice-buttons button.pugs-choice-button");
+    pugs_choice_buttons.removeClass("is-selected");
+    pugs_choice_buttons.attr("aria-pressed", "false");
+
+    if (!Number.isInteger(option_index)) return;
+
+    const selected_button = pugs_choice_buttons.filter(function() {
+        return Number($(this).data("option-index")) === option_index;
+    }).first();
+    if (selected_button.length === 0) return;
+
+    selected_button.addClass("is-selected");
+    selected_button.attr("aria-pressed", "true");
+}
+
+function pugsChoiceOptionMatchesEnchantmentFoundation(pugs_choice_option, enchantment_foundation) {
+    if (!pugs_choice_option || !Array.isArray(pugs_choice_option.enchantments)) return false;
+    if (!Array.isArray(enchantment_foundation)) return false;
+
+    const selected_enchantments = new Map();
+    enchantment_foundation.forEach(([enchantment_namespace, enchantment_level]) => {
+        selected_enchantments.set(enchantment_namespace, enchantment_level);
+    });
+
+    if (selected_enchantments.size !== enchantment_foundation.length) return false;
+    if (pugs_choice_option.enchantments.length !== selected_enchantments.size) return false;
+
+    return pugs_choice_option.enchantments.every(([enchantment_namespace, enchantment_level]) => {
+        return selected_enchantments.get(enchantment_namespace) === enchantment_level;
+    });
+}
+
+function matchingPugsChoiceOptionIndex(item_namespace, enchantment_foundation) {
+    const pugs_choice_options = pugsChoiceOptionsForItem(item_namespace);
+    if (pugs_choice_options.length === 0) return null;
+
+    const matching_option_index = pugs_choice_options.findIndex(pugs_choice_option => {
+        return pugsChoiceOptionMatchesEnchantmentFoundation(pugs_choice_option, enchantment_foundation);
+    });
+
+    if (matching_option_index < 0) return null;
+    return matching_option_index;
+}
+
+function syncPugsChoiceButtonSelectedStateToCurrentSelection() {
+    const item_namespace = retrieveSelectedItem();
+    const enchantment_foundation = retrieveEnchantmentFoundation();
+    const matching_option_index = matchingPugsChoiceOptionIndex(item_namespace, enchantment_foundation);
+    setPugsChoiceButtonSelectedState(matching_option_index);
 }
 
 function syncPugsChoiceButtonState() {
-    const pugs_choice_button = $("#pugs-choice-button");
-    if (pugs_choice_button.length === 0) return;
+    const pugs_choice_buttons = $("#pugs-choice-buttons");
+    if (pugs_choice_buttons.length === 0) return;
 
     const item_namespace = retrieveSelectedItem();
-    const has_preset = !!pugsChoiceEnchantmentsForItem(item_namespace);
-    const button_label = has_preset
-        ? UI_STRINGS.apply_pugs_choice
-        : UI_STRINGS.pugs_choice_not_available;
+    const pugs_choice_options = pugsChoiceOptionsForItem(item_namespace);
+    const has_options = pugs_choice_options.length > 0;
 
-    pugs_choice_button.prop("disabled", !has_preset);
-    pugs_choice_button.attr("title", button_label);
-    pugs_choice_button.attr("aria-label", button_label);
+    pugs_choice_buttons.html("");
+    pugs_choice_buttons.prop("hidden", !has_options);
+    if (!has_options) return;
+
+    pugs_choice_options.forEach((pugs_choice_option, option_index) => {
+        buildPugsChoiceButton(pugs_choice_options, pugs_choice_option, option_index)
+            .appendTo(pugs_choice_buttons);
+    });
 }
 
 function buildEnchantmentSelection() {
@@ -1220,8 +1378,9 @@ function buildEnchantmentSelection() {
         levelButtonClicked($(this));
     });
 
-    $("#pugs-choice-button").on("click", function() {
-        applyPugsChoiceSelection();
+    $("#pugs-choice-buttons").on("click", "button.pugs-choice-button", function() {
+        const option_index = Number($(this).data("option-index"));
+        applyPugsChoiceSelection(option_index);
     });
 
     syncPugsChoiceButtonState();
@@ -2035,19 +2194,29 @@ function levelButtonClicked(button_clicked) {
     }
 
     if (selection_changed) {
+        syncPugsChoiceButtonSelectedStateToCurrentSelection();
         runAutoCalculation();
     }
 }
 
-function applyPugsChoiceSelection() {
+function applyPugsChoiceSelection(option_index = 0) {
     cancelPugsChoiceCascade();
 
     const item_namespace = retrieveSelectedItem();
-    const pugs_choice_enchantments = pugsChoiceEnchantmentsForItem(item_namespace);
-    if (!pugs_choice_enchantments) return;
+    const pugs_choice_options = pugsChoiceOptionsForItem(item_namespace);
+    if (pugs_choice_options.length === 0) return;
+
+    const normalized_option_index = Number.isInteger(option_index) ? option_index : 0;
+    const pugs_choice_option = pugs_choice_options[normalized_option_index];
+    if (!pugs_choice_option) return;
+
+    const pugs_choice_enchantments = pugs_choice_option.enchantments;
+    if (!Array.isArray(pugs_choice_enchantments) || pugs_choice_enchantments.length === 0) return;
 
     const enchantment_buttons = $("#enchants button.level-button");
     if (enchantment_buttons.length === 0) return;
+
+    setPugsChoiceButtonSelectedState(normalized_option_index);
 
     turnOffButtons(enchantment_buttons);
     refreshMutualExclusionRowStates();
