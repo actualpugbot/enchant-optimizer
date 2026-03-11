@@ -269,28 +269,27 @@ var data = {
         }
     },
     items: [
+        'pickaxe',
+        'axe',
+        'shovel',
+        'hoe',
+
+        'sword',
+        'bow',
+        'spear',
+        'mace',
+        'trident',
+        'crossbow',
+
         'helmet',
         'chestplate',
         'leggings',
         'boots',
-        'turtle_shell',
         'elytra',
+        'turtle_shell',
 
-        'sword',
-        'axe',
-        'mace',
-        'spear',
-
-        'trident',
-        'bow',
-        'crossbow',
-
-        'pickaxe',
-        'shovel',
-        'hoe',
         'shield',
         'brush',
-
         'fishing_rod',
         'shears',
         'flint_and_steel',

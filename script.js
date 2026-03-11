@@ -117,29 +117,24 @@ const ITEM_ICON_VARIANTS = {
 
 const ITEM_DROPDOWN_GROUPS = [
     {
-        id: "armor",
-        label: "Armor",
-        items: ["helmet", "chestplate", "leggings", "boots", "turtle_shell", "elytra"],
-    },
-    {
-        id: "melee",
-        label: "Melee",
-        items: ["sword", "axe", "mace", "spear"],
-    },
-    {
-        id: "ranged",
-        label: "Ranged",
-        items: ["trident", "bow", "crossbow"],
-    },
-    {
         id: "tools",
         label: "Tools",
-        items: ["pickaxe", "shovel", "hoe", "shield", "brush"],
+        items: ["pickaxe", "axe", "shovel", "hoe"],
+    },
+    {
+        id: "weapons",
+        label: "Weapons",
+        items: ["sword", "bow", "spear", "mace", "trident", "crossbow"],
+    },
+    {
+        id: "armor",
+        label: "Armor",
+        items: ["helmet", "chestplate", "leggings", "boots", "elytra", "turtle_shell"],
     },
     {
         id: "utility",
         label: "Utility",
-        items: ["fishing_rod", "shears", "flint_and_steel", "carrot_on_a_stick", "warped_fungus_on_a_stick", "pumpkin"],
+        items: ["shield", "brush", "fishing_rod", "shears", "flint_and_steel", "carrot_on_a_stick", "warped_fungus_on_a_stick", "pumpkin"],
     },
 ];
 
@@ -285,10 +280,9 @@ const PUGS_CHOICE_ENCHANTMENTS = {
 const ENGLISH_STRINGS = {
     choose_an_item_to_enchant: "Choose an item to enchant",
     item_groups: {
-        armor: "Armor",
-        melee: "Melee",
-        ranged: "Ranged",
         tools: "Tools",
+        weapons: "Weapons",
+        armor: "Armor",
         utility: "Utility",
         ungrouped: "Other",
     },
