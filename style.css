@@ -507,6 +507,52 @@ input:focus-visible {
     font-weight: 600;
 }
 
+.enchants-heading-row {
+    display: flex;
+    align-items: center;
+    gap: 0.62rem;
+    margin-bottom: 0.7rem;
+}
+
+.enchants-heading-row .section-heading {
+    margin: 0;
+}
+
+.pugs-choice-button {
+    width: 2.05rem;
+    height: 2.05rem;
+    margin-left: auto;
+    border: 1px solid #546171;
+    border-radius: 0.5rem;
+    padding: 0;
+    display: grid;
+    place-items: center;
+    color: #f9f3b2;
+    background: linear-gradient(180deg, #39485a 0%, #303d4e 100%);
+    cursor: pointer;
+    transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.12s ease, color 0.2s ease;
+}
+
+.pugs-choice-button span {
+    display: block;
+    font-size: 1.24rem;
+    line-height: 1;
+}
+
+.pugs-choice-button:hover:not(:disabled) {
+    border-color: #7d92aa;
+    background: linear-gradient(180deg, #42556b 0%, #36485e 100%);
+    transform: translateY(-1px);
+}
+
+.pugs-choice-button:disabled {
+    border-color: #4f5d6f;
+    color: #8292a6;
+    background: #323d4a;
+    cursor: not-allowed;
+    transform: none;
+}
+
 #enchants {
     margin-top: 0.85rem;
     padding: 0;
@@ -1014,6 +1060,23 @@ html[data-theme="light"] .custom-select-option.is-selected {
     background: rgba(95, 143, 203, 0.22);
 }
 
+html[data-theme="light"] .pugs-choice-button {
+    border-color: #9eb3c8;
+    color: #876826;
+    background: linear-gradient(180deg, #e5edf7 0%, #dbe7f4 100%);
+}
+
+html[data-theme="light"] .pugs-choice-button:hover:not(:disabled) {
+    border-color: #7f9cbc;
+    background: linear-gradient(180deg, #d8e5f3 0%, #cedef0 100%);
+}
+
+html[data-theme="light"] .pugs-choice-button:disabled {
+    border-color: #becddd;
+    color: #90a0b4;
+    background: #e7eef6;
+}
+
 html[data-theme="light"] .table-wrap {
     background: linear-gradient(180deg, #ffffff 0%, #edf3fb 100%);
     scrollbar-color: #8ca7c3 #dfe9f4;
@@ -1185,6 +1248,11 @@ html[data-theme="light"] .step-item-lines {
     }
 
     #enchants button.level-button {
+        width: 1.9rem;
+        height: 1.9rem;
+    }
+
+    .pugs-choice-button {
         width: 1.9rem;
         height: 1.9rem;
     }

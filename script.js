@@ -11,6 +11,9 @@ let itemSelectorIdleTimer = null;
 let itemSelectorIdleAnimations = [];
 let itemSelectorIdleRunToken = 0;
 let itemSelectorIdleCurrentIndex = 0;
+let pugsChoiceCascadeTimer = null;
+let pugsChoiceCascadeRunToken = 0;
+let pugsChoiceCascadeCalculationCallback = null;
 
 const ITEM_ICON_VARIANTS = {
     sword: {
@@ -152,6 +155,118 @@ const ITEM_SELECTOR_IDLE_PAUSE_MS = 1500;
 const ITEM_SELECTOR_IDLE_TRANSITION_MS = 460;
 const ITEM_SELECTOR_IDLE_TRANSITION_DISTANCE_PX = 58;
 const ITEM_SELECTOR_IDLE_TRANSITION_EASING = "cubic-bezier(0.42, 0, 0.22, 1)";
+const PUGS_CHOICE_CASCADE_STEP_MS = 110;
+
+const PUGS_CHOICE_ENCHANTMENTS = {
+    helmet: [
+        ["protection", 4],
+        ["aqua_affinity", 1],
+        ["mending", 1],
+        ["respiration", 3],
+        ["unbreaking", 3],
+    ],
+    chestplate: [
+        ["protection", 4],
+        ["mending", 1],
+        ["unbreaking", 3],
+    ],
+    leggings: [
+        ["protection", 4],
+        ["mending", 1],
+        ["swift_sneak", 3],
+        ["unbreaking", 3],
+    ],
+    boots: [
+        ["protection", 4],
+        ["depth_strider", 3],
+        ["feather_falling", 4],
+        ["mending", 1],
+        ["soul_speed", 3],
+        ["unbreaking", 3],
+    ],
+    turtle_shell: [
+        ["protection", 4],
+        ["aqua_affinity", 1],
+        ["mending", 1],
+        ["respiration", 3],
+        ["unbreaking", 3],
+    ],
+    elytra: [
+        ["mending", 1],
+        ["unbreaking", 3],
+    ],
+    sword: [
+        ["sharpness", 5],
+        ["knockback", 2],
+        ["looting", 3],
+        ["mending", 1],
+        ["sweeping", 3],
+        ["unbreaking", 3],
+    ],
+    axe: [
+        ["smite", 5],
+        ["efficiency", 5],
+        ["silk_touch", 1],
+        ["mending", 1],
+        ["unbreaking", 3],
+    ],
+    trident: [
+        ["channeling", 1],
+        ["loyalty", 3],
+        ["mending", 1],
+        ["unbreaking", 3],
+    ],
+    bow: [
+        ["infinity", 1],
+        ["power", 5],
+        ["punch", 2],
+        ["unbreaking", 3],
+    ],
+    pickaxe: [
+        ["efficiency", 5],
+        ["silk_touch", 1],
+        ["mending", 1],
+        ["unbreaking", 3],
+    ],
+    shovel: [
+        ["efficiency", 5],
+        ["silk_touch", 1],
+        ["mending", 1],
+        ["unbreaking", 3],
+    ],
+    hoe: [
+        ["efficiency", 5],
+        ["silk_touch", 1],
+        ["mending", 1],
+        ["unbreaking", 3],
+    ],
+    shield: [
+        ["mending", 1],
+        ["unbreaking", 3],
+    ],
+    brush: [
+        ["mending", 1],
+        ["unbreaking", 3],
+    ],
+    fishing_rod: [
+        ["luck_of_the_sea", 3],
+        ["lure", 3],
+        ["mending", 1],
+        ["unbreaking", 3],
+    ],
+    shears: [
+        ["efficiency", 5],
+        ["mending", 1],
+        ["unbreaking", 3],
+    ],
+    flint_and_steel: [
+        ["mending", 1],
+        ["unbreaking", 3],
+    ],
+    pumpkin: [
+        ["binding_curse", 1],
+    ],
+};
 
 const ENGLISH_STRINGS = {
     choose_an_item_to_enchant: "Choose an item to enchant",
@@ -183,6 +298,8 @@ const ENGLISH_STRINGS = {
     more_than: " More than ",
     enchantments_are_not_recommended: " enchantments are not recommended.",
     please_select_enchantments: " Please deselect some enchantments or check the override near the bottom of the page.",
+    apply_pugs_choice: "Apply Pug's Choice enchantments",
+    pugs_choice_not_available: "Pug's Choice enchantments are not available for this item",
     items: {
         helmet: "Helmet",
         chestplate: "Chestplate",
@@ -207,7 +324,7 @@ const ENGLISH_STRINGS = {
         flint_and_steel: "Flint and Steel",
         carrot_on_a_stick: "Carrot on a Stick",
         warped_fungus_on_a_stick: "Warped Fungus on a Stick",
-        pumpkin: "Pumpkin",
+        pumpkin: "Carved Pumpkin",
         book: "Book",
     },
     enchants: {
@@ -1060,8 +1177,30 @@ function buildEnchantList(item_namespace_chosen) {
     runAutoCalculation();
 }
 
+function pugsChoiceEnchantmentsForItem(item_namespace) {
+    if (!item_namespace) return null;
+    return PUGS_CHOICE_ENCHANTMENTS[item_namespace] || null;
+}
+
+function syncPugsChoiceButtonState() {
+    const pugs_choice_button = $("#pugs-choice-button");
+    if (pugs_choice_button.length === 0) return;
+
+    const item_namespace = retrieveSelectedItem();
+    const has_preset = !!pugsChoiceEnchantmentsForItem(item_namespace);
+    const button_label = has_preset
+        ? UI_STRINGS.apply_pugs_choice
+        : UI_STRINGS.pugs_choice_not_available;
+
+    pugs_choice_button.prop("disabled", !has_preset);
+    pugs_choice_button.attr("title", button_label);
+    pugs_choice_button.attr("aria-label", button_label);
+}
+
 function buildEnchantmentSelection() {
     $("select#item").change(function() {
+        cancelPugsChoiceCascade();
+
         const item_namespace_selected = $("select#item option:selected").val();
         if (item_namespace_selected) {
             buildEnchantList(item_namespace_selected);
@@ -1074,11 +1213,18 @@ function buildEnchantmentSelection() {
         }
 
         updateItemSelectorPreview();
+        syncPugsChoiceButtonState();
     });
 
     $("#enchants table").on("click", "button.level-button", function() {
         levelButtonClicked($(this));
     });
+
+    $("#pugs-choice-button").on("click", function() {
+        applyPugsChoiceSelection();
+    });
+
+    syncPugsChoiceButtonState();
 }
 
 function displayLevelsText(levels) {
@@ -1725,6 +1871,12 @@ function afterFoundOptimalSolution(msg) {
             addInstructionDisplay(instruction, index + 1);
         });
     }
+
+    if (typeof pugsChoiceCascadeCalculationCallback === "function") {
+        const callback = pugsChoiceCascadeCalculationCallback;
+        pugsChoiceCascadeCalculationCallback = null;
+        callback();
+    }
 }
 
 function buttonMatchesNamespace(button, enchantment_namespace) {
@@ -1741,6 +1893,24 @@ function filterButton(button, enchantment_namespace, enchantment_level = -1) {
     const button_matches_name = buttonMatchesNamespace(button, enchantment_namespace);
     const button_matches_level = buttonMatchesLevel(button, enchantment_level);
     return button_matches_name && !button_matches_level;
+}
+
+function levelButtonForNamespaceAndLevel(enchantment_namespace, enchantment_level) {
+    const enchantment_buttons = $("#enchants button.level-button");
+    const level_button = enchantment_buttons.filter(function() {
+        const this_button = $(this);
+        return buttonMatchesNamespace(this_button, enchantment_namespace) && buttonMatchesLevel(this_button, enchantment_level);
+    });
+    return level_button.first();
+}
+
+function cancelPugsChoiceCascade() {
+    pugsChoiceCascadeRunToken += 1;
+    pugsChoiceCascadeCalculationCallback = null;
+    if (pugsChoiceCascadeTimer) {
+        clearTimeout(pugsChoiceCascadeTimer);
+        pugsChoiceCascadeTimer = null;
+    }
 }
 
 function turnOffButtons(buttons) {
@@ -1839,6 +2009,8 @@ function isTooManyEnchantments(enchantment_count) {
 }
 
 function levelButtonClicked(button_clicked) {
+    cancelPugsChoiceCascade();
+
     const button_is_on = button_clicked.hasClass("on");
     let selection_changed = false;
 
@@ -1865,6 +2037,65 @@ function levelButtonClicked(button_clicked) {
     if (selection_changed) {
         runAutoCalculation();
     }
+}
+
+function applyPugsChoiceSelection() {
+    cancelPugsChoiceCascade();
+
+    const item_namespace = retrieveSelectedItem();
+    const pugs_choice_enchantments = pugsChoiceEnchantmentsForItem(item_namespace);
+    if (!pugs_choice_enchantments) return;
+
+    const enchantment_buttons = $("#enchants button.level-button");
+    if (enchantment_buttons.length === 0) return;
+
+    turnOffButtons(enchantment_buttons);
+    refreshMutualExclusionRowStates();
+    updateFinalPreview();
+
+    const applyInstantly = shouldReduceMotion();
+    if (applyInstantly) {
+        pugs_choice_enchantments.forEach(([enchantment_namespace, enchantment_level]) => {
+            const level_button = levelButtonForNamespaceAndLevel(enchantment_namespace, enchantment_level);
+            if (level_button.length === 0) return;
+            updateLevelButtonForOnState(level_button);
+        });
+        runAutoCalculation();
+        return;
+    }
+
+    pugsChoiceCascadeRunToken += 1;
+    const run_token = pugsChoiceCascadeRunToken;
+    let enchantment_index = 0;
+
+    const applyNextEnchantment = function() {
+        if (run_token !== pugsChoiceCascadeRunToken) return;
+
+        if (enchantment_index >= pugs_choice_enchantments.length) {
+            pugsChoiceCascadeTimer = null;
+            return;
+        }
+
+        const [enchantment_namespace, enchantment_level] = pugs_choice_enchantments[enchantment_index];
+        enchantment_index += 1;
+
+        const level_button = levelButtonForNamespaceAndLevel(enchantment_namespace, enchantment_level);
+        if (level_button.length === 0) {
+            pugsChoiceCascadeTimer = window.setTimeout(applyNextEnchantment, PUGS_CHOICE_CASCADE_STEP_MS);
+            return;
+        }
+
+        updateLevelButtonForOnState(level_button);
+
+        pugsChoiceCascadeCalculationCallback = function() {
+            if (run_token !== pugsChoiceCascadeRunToken) return;
+            pugsChoiceCascadeTimer = window.setTimeout(applyNextEnchantment, PUGS_CHOICE_CASCADE_STEP_MS);
+        };
+
+        runAutoCalculation();
+    };
+
+    applyNextEnchantment();
 }
 
 function retrieveEnchantmentFoundation() {
@@ -2027,6 +2258,7 @@ function applyUiStrings() {
     document.getElementById("total-cost-label").textContent = UI_STRINGS.total_cost;
 
     $("select#item").change();
+    syncPugsChoiceButtonState();
     $("#solution").hide();
     $("#error").hide();
 }
