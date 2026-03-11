@@ -14,6 +14,9 @@ let itemSelectorIdleCurrentIndex = 0;
 let pugsChoiceCascadeTimer = null;
 let pugsChoiceCascadeRunToken = 0;
 let pugsChoiceCascadeCalculationCallback = null;
+let cumulativeCostAnimationFrame = null;
+let cumulativeCostAnimationToken = 0;
+let displayedCumulativeLevels = null;
 
 const ITEM_ICON_VARIANTS = {
     sword: {
@@ -1628,11 +1631,67 @@ function findEnchantments(item) {
 }
 
 function updateCumulativeCost(cumulative_levels, cumulative_xp, minimum_xp = -1) {
-    const cost_text = displayLevelsText(cumulative_levels);
     const detailed_cost_text = displayLevelXpText(cumulative_levels, cumulative_xp, minimum_xp);
     const cost_header = $("#level-cost");
-    cost_header.text(cost_text);
+    const header_element = cost_header.get(0);
+    const current_text = cost_header.text();
+    const parsed_current_levels = parseInt(current_text, 10);
+    const resolved_current_levels = Number.isFinite(displayedCumulativeLevels)
+        ? displayedCumulativeLevels
+        : (Number.isFinite(parsed_current_levels) ? parsed_current_levels : 0);
+    const target_levels = cumulative_levels;
+
+    if (cumulativeCostAnimationFrame !== null) {
+        window.cancelAnimationFrame(cumulativeCostAnimationFrame);
+        cumulativeCostAnimationFrame = null;
+    }
+
+    cumulativeCostAnimationToken += 1;
+    const animation_token = cumulativeCostAnimationToken;
+
+    if (!header_element || shouldReduceMotion() || resolved_current_levels === target_levels) {
+        displayedCumulativeLevels = target_levels;
+        cost_header.text(displayLevelsText(target_levels));
+        cost_header.attr("title", detailed_cost_text);
+        return;
+    }
+
+    const level_delta = target_levels - resolved_current_levels;
+    const duration_ms = Math.max(260, Math.min(920, Math.abs(level_delta) * 34));
+    const animation_start_time = performance.now();
+
+    const step = function(now) {
+        if (animation_token !== cumulativeCostAnimationToken) {
+            return;
+        }
+
+        const elapsed = now - animation_start_time;
+        const raw_progress = Math.min(elapsed / duration_ms, 1);
+        const eased_progress = 1 - Math.pow(1 - raw_progress, 3);
+        const next_levels = raw_progress >= 1
+            ? target_levels
+            : resolved_current_levels + Math.round(level_delta * eased_progress);
+
+        if (next_levels !== displayedCumulativeLevels) {
+            displayedCumulativeLevels = next_levels;
+            cost_header.text(displayLevelsText(next_levels));
+        }
+
+        if (raw_progress < 1) {
+            cumulativeCostAnimationFrame = window.requestAnimationFrame(step);
+            return;
+        }
+
+        cumulativeCostAnimationFrame = null;
+        displayedCumulativeLevels = target_levels;
+        cost_header.text(displayLevelsText(target_levels));
+        cost_header.attr("title", detailed_cost_text);
+    };
+
+    displayedCumulativeLevels = resolved_current_levels;
+    cost_header.text(displayLevelsText(resolved_current_levels));
     cost_header.attr("title", detailed_cost_text);
+    cumulativeCostAnimationFrame = window.requestAnimationFrame(step);
 }
 
 function addInstructionDisplay(instruction, step_number) {
