@@ -374,7 +374,7 @@ const ENGLISH_STRINGS = {
         silk_touch: "Silk Touch",
         smite: "Smite",
         soul_speed: "Soul Speed",
-        sweeping: "Sweeping",
+        sweeping: "Sweeping Edge",
         swift_sneak: "Swift Sneak",
         thorns: "Thorns",
         unbreaking: "Unbreaking",
