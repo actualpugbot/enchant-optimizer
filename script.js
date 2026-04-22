@@ -1,4 +1,5 @@
 const ENCHANTMENT_LIMIT_INCLUSIVE = 10;
+const RENAME_STEP_METADATA_INDEX = 5;
 
 let worker;
 let enchants_list;
@@ -312,6 +313,10 @@ const ENGLISH_STRINGS = {
     pugs_choice: "Pug's Choice",
     apply_pugs_choice: "Apply Pug's Choice enchantments",
     pugs_choice_not_available: "Pug's Choice enchantments are not available for this item",
+    custom_name_placeholder: "Custom name",
+    rename_to: "Renames to ",
+    rename_only: "Rename only",
+    rename_step_label: "rename",
     items: {
         helmet: "Helmet",
         chestplate: "Chestplate",
@@ -484,6 +489,41 @@ function resetWorker() {
         msg: "set_data",
         data: data
     });
+}
+
+function renameInputElement() {
+    return document.getElementById("item-rename");
+}
+
+function normalizeCustomName(raw_value) {
+    const normalized_whitespace = String(raw_value || "").replace(/\u00a0/g, " ");
+    const trimmed_value = normalized_whitespace.trim();
+    return trimmed_value.length > 0 ? trimmed_value : null;
+}
+
+function requestedCustomNameForItem(item_namespace) {
+    if (!item_namespace) return null;
+
+    const rename_input = renameInputElement();
+    if (!rename_input) return null;
+
+    const custom_name = normalizeCustomName(rename_input.value);
+    if (!custom_name) return null;
+
+    const default_item_name = displayItemName(item_namespace, true);
+    return custom_name === default_item_name ? null : custom_name;
+}
+
+function currentCustomName() {
+    return requestedCustomNameForItem(retrieveSelectedItem());
+}
+
+function displayItemTitle(item_namespace, force_title_case = false) {
+    const custom_name = requestedCustomNameForItem(item_namespace);
+    if (custom_name) {
+        return custom_name;
+    }
+    return displayItemName(item_namespace, force_title_case);
 }
 
 function buildItemSelection() {
@@ -1356,6 +1396,11 @@ function buildEnchantmentSelection() {
     $("select#item").change(function() {
         cancelPugsChoiceCascade();
 
+        const rename_input = renameInputElement();
+        if (rename_input) {
+            rename_input.value = "";
+        }
+
         const item_namespace_selected = $("select#item option:selected").val();
         if (item_namespace_selected) {
             buildEnchantList(item_namespace_selected);
@@ -1380,7 +1425,81 @@ function buildEnchantmentSelection() {
         applyPugsChoiceSelection(option_index);
     });
 
+    $("#item-rename").on("input", function() {
+        runAutoCalculation();
+    });
+
     syncPugsChoiceButtonState();
+}
+
+function experienceForLevelCost(level) {
+    if (level === 0) {
+        return 0;
+    }
+    if (level <= 16) {
+        return level ** 2 + 6 * level;
+    }
+    if (level <= 31) {
+        return 2.5 * level ** 2 - 40.5 * level + 360;
+    }
+    return 4.5 * level ** 2 - 162.5 * level + 2220;
+}
+
+function cloneInstruction(instruction) {
+    return instruction.slice();
+}
+
+function renameInstruction(item_namespace, custom_name) {
+    return [
+        { I: item_namespace },
+        null,
+        1,
+        experienceForLevelCost(1),
+        0,
+        {
+            action: "rename_only",
+            custom_name: custom_name,
+        },
+    ];
+}
+
+function solutionWithSeparateRename(base_solution, item_namespace, custom_name) {
+    if (!custom_name || !item_namespace) {
+        return base_solution;
+    }
+
+    const instructions = Array.isArray(base_solution.instructions)
+        ? base_solution.instructions.map(cloneInstruction)
+        : [];
+
+    instructions.unshift(renameInstruction(item_namespace, custom_name));
+
+    const extra = Array.isArray(base_solution.extra) ? base_solution.extra.slice() : [0, 0];
+    extra[0] += 1;
+    extra[1] = experienceForLevelCost(extra[0]);
+
+    const item_obj = base_solution.item_obj
+        ? { ...base_solution.item_obj, x: base_solution.item_obj.x + experienceForLevelCost(1) }
+        : base_solution.item_obj;
+
+    return {
+        ...base_solution,
+        instructions: instructions,
+        extra: extra,
+        item_obj: item_obj,
+    };
+}
+
+function renameOnlySolution(item_namespace, custom_name) {
+    return {
+        item_obj: {
+            I: item_namespace,
+            x: experienceForLevelCost(1),
+        },
+        instructions: [renameInstruction(item_namespace, custom_name)],
+        extra: [1, experienceForLevelCost(1)],
+        enchants: [],
+    };
 }
 
 function displayLevelsText(levels) {
@@ -1535,13 +1654,18 @@ function iconPathForItem(item_namespace, is_enchanted = false) {
     return "./images/" + item_namespace + ".gif";
 }
 
-function buildStepItemElement(item_obj) {
+function buildStepItemElement(item_obj, options = {}) {
     const item_data = extractItemDisplayData(item_obj);
     const item_name = displayItemName(item_data.item_namespace, true);
     const has_enchantments = item_data.enchantments.length > 0;
     const icon_src = iconPathForItem(item_data.item_namespace, has_enchantments);
+    const custom_name = typeof options.custom_name === "string" ? options.custom_name : null;
+    const should_quote_custom_name = options.quote_custom_name === true;
 
     const item_element = $("<div>").addClass("step-item");
+    if (custom_name) {
+        item_element.addClass("step-item-renamed");
+    }
     const item_icon = $("<img>", {
         src: icon_src,
         alt: item_name,
@@ -1563,7 +1687,19 @@ function buildStepItemElement(item_obj) {
         item_element.append(item_lines);
     }
 
+    if (custom_name) {
+        const display_name = should_quote_custom_name ? '"' + custom_name + '"' : custom_name;
+        $("<div>")
+            .addClass("step-item-custom-name")
+            .text(display_name)
+            .appendTo(item_element);
+    }
+
     return item_element;
+}
+
+function instructionMetadata(instruction) {
+    return instruction[RENAME_STEP_METADATA_INDEX] || null;
 }
 
 function displayInstructionText(instruction) {
@@ -1572,13 +1708,27 @@ function displayInstructionText(instruction) {
     const levels = instruction[2];
     const xp = instruction[3];
     const work = instruction[4];
+    const metadata = instructionMetadata(instruction);
+    const is_rename_step = metadata && metadata.action === "rename_only";
 
     const cost_text = UI_STRINGS.cost + displayLevelXpText(levels, xp);
     const prior_work_text = UI_STRINGS.prior_work_penalty + displayLevelsText(work);
+    const left = buildStepItemElement(left_item_obj);
+    let right = null;
+
+    if (is_rename_step) {
+        right = buildStepItemElement(left_item_obj, {
+            custom_name: metadata.custom_name,
+            quote_custom_name: true,
+        });
+    } else if (right_item_obj) {
+        right = buildStepItemElement(right_item_obj);
+    }
 
     return {
-        left: buildStepItemElement(left_item_obj),
-        right: buildStepItemElement(right_item_obj),
+        left: left,
+        right: right,
+        is_rename_step: is_rename_step,
         meta: cost_text + " | " + prior_work_text,
     };
 }
@@ -1705,7 +1855,30 @@ function addInstructionDisplay(instruction, step_number) {
 
     const combine_element = $("<div>").addClass("step-combine");
     combine_element.append(display_data.left);
-    $("<div>").addClass("step-plus").text("+").appendTo(combine_element);
+    const operator_element = $("<div>")
+        .addClass("step-plus")
+        .toggleClass("step-plus-rename", display_data.is_rename_step)
+        .appendTo(combine_element);
+
+    if (display_data.is_rename_step) {
+        $("<span>")
+            .addClass("step-plus-arrow")
+            .attr("aria-hidden", "true")
+            .appendTo(operator_element);
+    } else {
+        $("<span>")
+            .addClass("step-plus-symbol")
+            .text("+")
+            .appendTo(operator_element);
+    }
+
+    if (display_data.is_rename_step) {
+        $("<span>")
+            .addClass("step-plus-label")
+            .text(UI_STRINGS.rename_step_label)
+            .appendTo(operator_element);
+    }
+
     combine_element.append(display_data.right);
     step_element.append(combine_element);
 
@@ -2045,11 +2218,11 @@ function runAfterImageLoad(src, callback) {
 }
 
 
-function afterFoundOptimalSolution(msg) {
+function renderSolution(msg) {
     $("#phone-warn").hide();
     const instructions = msg.instructions;
     const instructions_count = instructions.length;
-    enchants_list = msg.enchants
+    enchants_list = msg.enchants || [];
 
     const solution_section = $("#solution");
     const solution_header = $("#solution-header");
@@ -2089,6 +2262,20 @@ function afterFoundOptimalSolution(msg) {
         pugsChoiceCascadeCalculationCallback = null;
         callback();
     }
+}
+
+function renderRenameOnlySolution() {
+    const item_namespace = retrieveSelectedItem();
+    const custom_name = requestedCustomNameForItem(item_namespace);
+    if (!item_namespace || !custom_name) return;
+
+    renderSolution(renameOnlySolution(item_namespace, custom_name));
+}
+
+function afterFoundOptimalSolution(msg) {
+    const item_namespace = retrieveSelectedItem();
+    const custom_name = currentCustomName();
+    renderSolution(solutionWithSeparateRename(msg, item_namespace, custom_name));
 }
 
 function buttonMatchesNamespace(button, enchantment_namespace) {
@@ -2348,13 +2535,19 @@ function updateFinalPreview() {
 
     const enchantment_foundation = retrieveEnchantmentFoundation();
     const has_enchantments = enchantment_foundation.length > 0;
-    if (!has_enchantments) {
+    const custom_name = requestedCustomNameForItem(item_namespace);
+    const has_custom_name = !!custom_name;
+    if (!has_enchantments && !has_custom_name) {
         animateFinalPreviewExit(preview);
         return;
     }
 
-    const item_name = displayItemName(item_namespace, true);
+    const item_name = displayItemTitle(item_namespace, true);
     const icon_src = iconPathForItem(item_namespace, has_enchantments);
+
+    const preview_name = $("#final-preview-name");
+    preview_name.text(custom_name || "");
+    preview_name.prop("hidden", !has_custom_name);
 
     const enchantment_list = $("#final-preview-enchants");
     enchantment_list.html("");
@@ -2383,11 +2576,19 @@ function runAutoCalculation() {
     updateFinalPreview();
 
     const enchantment_foundation = retrieveEnchantmentFoundation();
+    const custom_name = currentCustomName();
     if (enchantment_foundation.length > 0) {
         calculate();
         return;
     }
 
+    if (custom_name) {
+        resetWorker();
+        renderRenameOnlySolution();
+        return;
+    }
+
+    resetWorker();
     $("#phone-warn").hide();
     animateSolutionPanelExit($("#solution"));
     $("#error").hide();
@@ -2478,6 +2679,10 @@ function applyUiStrings() {
 
     /* other UI */
     document.getElementById("total-cost-label").textContent = UI_STRINGS.total_cost;
+    const rename_input = renameInputElement();
+    if (rename_input) {
+        rename_input.placeholder = UI_STRINGS.custom_name_placeholder;
+    }
 
     $("select#item").change();
     syncPugsChoiceButtonState();
